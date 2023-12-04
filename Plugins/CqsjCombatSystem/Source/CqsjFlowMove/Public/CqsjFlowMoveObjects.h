@@ -326,9 +326,112 @@
 		FString GetDebugStr() const;
 	};
 
+//这个类有4个的蓝图引用需要研究
+UCLASS(Blueprintable, meta = (DisplayName = "CqsjFlowMoveObject_Base"))
+class GBWFLOWMOVE_API UCqsjFlowMoveObject_Base : public UObject
+{
+	GENERATED_BODY()
+
+	virtual bool IsNameStableForNetworking() const override;
+	virtual bool IsSupportedForNetworking() const override;
+protected:
+	struct FWorldContext* WorldContext;
+public:
+	UCqsjFlowMoveObject_Base();
+
+	UPROPERTY()
+	FGuid Guid = FGuid();
+
+	// Allows the Object to use BP_Functions
+	UFUNCTION(BlueprintCallable, Category="WorldContext")
+	void SetWorldContext(UObject* NewWorldContext);
+
+	UFUNCTION(BlueprintCallable, Category = "WorldContext")
+	UObject* GetWorldContextObject();
+
+	//~ Begin UObject Interface
+	virtual class UWorld* GetWorld() const override final;
+	struct FWorldContext* GetWorldContext() const { return WorldContext; };
+};
+
+UENUM(BlueprintType)
+enum class ECqsjFlowMoveDirectionType : uint8
+{
+	MM UMETA(DisplayName="◈"),
+	MU UMETA(DisplayName="↑"),
+	MD UMETA(DisplayName="↓"),
+	LM UMETA(DisplayName="←"),
+	RM UMETA(DisplayName="→"),
+	LU UMETA(DisplayName="↖"),
+	RU UMETA(DisplayName="↗"),
+	LD UMETA(DisplayName="↙"),
+	RD UMETA(DisplayName="↘")
+};
+
+UENUM(BlueprintType)
+enum EGBWFlowMoveScenePointType
+{
+	TargetPoint,
+	ActorPoint,
+	LeftSidePoint,
+	RightSidePoint,
+	FloorPoint,
+	RoofPoint,
+	FloorForwardLedgePoint,
+	FloorBackwardLedgePoint,
+	NearestFloorLedgePoint,
+	RoofForwardLedgePoint,
+	RoofBackwardLedgePoint,
+	NearestRoofLedgePoint,
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveSceneChangeInfo
+{
+	GENERATED_BODY()
+	
+	bool SceneType = false;
+	bool ActorLocationScene = false;
+	bool TargetLocationScene = false;
+	bool LeftLocationScene = false;
+	bool RightLocationScene = false;
+	bool TargetActor = false;
+	bool Slope = false;
+	bool PerceptionResult = false;
+
+	FCqsjFlowMoveSceneChangeInfo(){}
+};
+
+//向地板和天花板移动
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveFloorRoofScene
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector Floor = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector FloorLedge_Forward = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector FloorLedge_Backward = FVector::ZeroVector;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector Roof = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector RoofLedge_Forward = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector RoofLedge_Backward = FVector::ZeroVector;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float HeightFromGround = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float HeightFromRoof = 0.0f;
+
 	
 
-
+	FCqsjFlowMoveFloorRoofScene(){}
+	bool EqualTo(const FCqsjFlowMoveFloorRoofScene& Other) const;
+};
 
 
 UCLASS()
