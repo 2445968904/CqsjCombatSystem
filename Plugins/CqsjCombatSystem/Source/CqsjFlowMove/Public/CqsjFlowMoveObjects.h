@@ -328,7 +328,7 @@
 
 //这个类有4个的蓝图引用需要研究
 UCLASS(Blueprintable, meta = (DisplayName = "CqsjFlowMoveObject_Base"))
-class GBWFLOWMOVE_API UCqsjFlowMoveObject_Base : public UObject
+class CQSJFLOWMOVE_API  UCqsjFlowMoveObject_Base : public UObject
 {
 	GENERATED_BODY()
 
@@ -432,6 +432,9 @@ struct FCqsjFlowMoveFloorRoofScene
 	FCqsjFlowMoveFloorRoofScene(){}
 	bool EqualTo(const FCqsjFlowMoveFloorRoofScene& Other) const;
 };
+
+
+
 
 
 UCLASS()
