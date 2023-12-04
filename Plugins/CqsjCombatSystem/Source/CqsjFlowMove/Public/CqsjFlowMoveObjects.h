@@ -608,6 +608,126 @@ struct FCqsjFlowMoveVectorScope
 	FCqsjFlowMoveVectorScope(){}
 	bool InScope(const FVector InValue) const ;//这个函数进行检查是否在范围内
 };
+//这里就升级为Transform了
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveTransformScope
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	FCqsjFlowMoveVectorScope Location_Scope = FCqsjFlowMoveVectorScope();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveVectorScope Rotation_Scope = FCqsjFlowMoveVectorScope();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveVectorScope Scale_Scope = FCqsjFlowMoveVectorScope();
+
+	FCqsjFlowMoveTransformScope(){}
+	bool InScope(const FTransform InValue) const;
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjPerceptionResultItemScope
+{
+	GENERATED_BODY()
+	//最重要的ItemType
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	ECqsjPerceptionResultItemType Type = ECqsjPerceptionResultItemType::Float;
+
+	//以下的变量都是根据上面的ItemType来打开的
+	UPROPERTY(BlueprintReadWrite,EditDefaultsOnly,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::Bool"))
+	FString BValueScope = "Ture/False";
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::Float"))
+	FCqsjFlowMoveFloatScope FValueScope = FCqsjFlowMoveFloatScope();
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::Vector"))
+	FCqsjFlowMoveVectorScope VValueScope = FCqsjFlowMoveVectorScope();
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::Transform"))
+	FCqsjFlowMoveTransformScope TValueScope = FCqsjFlowMoveTransformScope();
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::String"))
+	TSet<FString> SValueScope;
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::GameplayTag"))
+	TSet<FGameplayTag> GTValueScope;
+	UPROPERTY(BlueprintReadWrite,EditDefaultsOnly,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::Actor"))
+	FString AValueScope = "Currently not supported";
+	UPROPERTY(BlueprintReadWrite,EditDefaultsOnly,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::Object"))
+	FString OValueScope = "Currently not supported";
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings",meta=(EditConditionHides,EditCondition="Type==EGBWPerceptionResultItemType::MovementMode"))
+	TSet<TEnumAsByte<EMovementMode>> MovementModeValueScope = {
+		EMovementMode::MOVE_None,
+		EMovementMode::MOVE_Walking,
+		EMovementMode::MOVE_NavWalking,
+		EMovementMode::MOVE_Flying,
+		EMovementMode::MOVE_Falling,
+		EMovementMode::MOVE_Swimming,
+		EMovementMode::MOVE_Custom
+	};
+	
+	FCqsjPerceptionResultItemScope(){}
+};
+
+//各种perception需要的变量整体储存的结构体
+USTRUCT(BlueprintType)
+struct FCqsjPerceptionResultScope
+{
+	GENERATED_BODY()
+
+	//这是上面那个结构体的映射
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	TMap<FName,FCqsjPerceptionResultItemScope> Scope;
+
+	FCqsjPerceptionResultScope(){}
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveSceneScope
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settins")
+	TSet<FName> SceneTypeScope;
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	FCqsjFlowMoveFloatScope SceneHeightScope = FCqsjFlowMoveFloatScope();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	TSet<TEnumAsByte<EMovementMode>> MovementModeScope = {
+		EMovementMode::MOVE_None,
+		EMovementMode::MOVE_Walking,
+		EMovementMode::MOVE_NavWalking,
+		EMovementMode::MOVE_Flying,
+		EMovementMode::MOVE_Falling,
+		EMovementMode::MOVE_Swimming,
+		EMovementMode::MOVE_Custom
+	};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveFloatScope HeightFromGround = FCqsjFlowMoveFloatScope();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjPerceptionResultScope PerceptionResultScope = FCqsjPerceptionResultScope();
+
+	FCqsjFlowMoveSceneScope(){}
+	
+};
+
+UENUM(BlueprintType)
+enum EInclusivityType
+{
+	Include_,
+	NotInclude_
+};
+
+
+USTRUCT(BlueprintType)
+struct FFlowMoveSceneTypeCondition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	TEnumAsByte<EInclusivityType> ConditionType = EInclusivityType::Include_;
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	TSet<FName> SceneTypeCondition ; 
+};
 
 
 
