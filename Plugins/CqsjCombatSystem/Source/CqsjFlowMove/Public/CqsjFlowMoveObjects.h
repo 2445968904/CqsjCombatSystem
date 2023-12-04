@@ -433,7 +433,181 @@ struct FCqsjFlowMoveFloorRoofScene
 	bool EqualTo(const FCqsjFlowMoveFloorRoofScene& Other) const;
 };
 
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveBlockWallScene
+{
+	GENERATED_BODY()
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector WallPoint = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector WallLedge_Up = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector WallLedge_Down = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector WallLedge_Left = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector WallLedge_Right = FVector::ZeroVector;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float DistanceFromActor = 0.0f;
+
+	FCqsjFlowMoveBlockWallScene(){}
+	bool EqualTo(const FCqsjFlowMoveBlockWallScene& Other) const;
+	bool IsWall() const;
+	bool IsLedge_Up() const;
+	bool IsLedge_Down() const;
+	bool IsLedge_Left() const;
+	bool IsLedge_Right() const;
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMovePointScene
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector Point = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Height = 0.f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Right = 0.f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Forward = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Angle = 0.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Direction = 0.f;
+	//MM 是中心的意思
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	ECqsjFlowMoveDirectionType SceneDirectionMark = ECqsjFlowMoveDirectionType::MM;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveFloorRoofScene FloorAndRoof = FCqsjFlowMoveFloorRoofScene();
+
+	FCqsjFlowMovePointScene(){}
+	FCqsjFlowMovePointScene(ACharacter* InCharacter, const FVector& InPoint, bool bFindLedge, float LedgeTraceDistance, FGBWFlowMoveTraceSetting TraceSetting);
+	bool EqualTo(const FCqsjFlowMovePointScene& Other) const;
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveScene
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FName SceneType = NAME_None;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMovePointScene ActorLocationScene = FCqsjFlowMovePointScene();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMovePointScene TargetLocationScene = FCqsjFlowMovePointScene();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMovePointScene LeftLocationScene = FCqsjFlowMovePointScene();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMovePointScene RightLocationScene = FCqsjFlowMovePointScene();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	AActor* TargetActor = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Slope = 0.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjPerceptionResult PerceptionResult = FCqsjPerceptionResult();
+
+	FCqsjFlowMoveScene(){}
+	FCqsjFlowMoveScene(ACharacter* InCharacter,
+		FName InSceneType,
+		AActor* InTargetActor,
+		float InSlope,
+		const FVector& InTargetPoint,
+		const FVector& LeftTargetPoint,
+		const FVector& RightTargetPoint,
+		const FCqsjFlowMoveTraceSetting& TraceSetting,
+		float LedgeTraceDistance);
+
+	bool IsValid() const;
+	bool EqualTo(const FCqsjFlowMoveScene& OtherScene);
+	bool CheckSceneChange(
+		const FCqsjFlowMoveScene& OtherScene,
+		FCqsjFlowMoveSceneChangeInfo& ChangeInfo);
+
+	bool GetPlaneConstraintSetting(FVector& PlaneNormal, FVector& PlaneOrigin) const;
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjSupplementaryFlowMoveScene
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FGameplayTag SceneSlot = FGameplayTag();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveScene Scene = FCqsjFlowMoveScene();
+};
+
+//这个枚举用来设置>=还是>
+UENUM(BlueprintType)
+enum class ECqsjFlowMoveValueScopePointType : uint8
+{
+	Contain UMETA(DisplayName="Contain"),
+	NotContain UMETA(DisplayName="NotContain"),
+	Unrestricted UMETA(DisplayName="∞")
+};
+
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveFloatScopePoint
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	ECqsjFlowMoveValueScopePointType Type = ECqsjFlowMoveValueScopePointType::Unrestricted;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings", meta=(EditConditionHides, EditCondition="Type!=EGBWFlowMoveValueScopePointType::Unrestricted"))
+	float Value = 0.0f;
+
+	FCqsjFlowMoveFloatScopePoint(){}
+	
+};
+
+//用于定义浮点数范围的数据结构
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveFloatScope
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveFloatScopePoint Min = FCqsjFlowMoveFloatScopePoint();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveFloatScopePoint Max = FCqsjFlowMoveFloatScopePoint();
+
+	FCqsjFlowMoveFloatScope(){}
+	bool InScope(const float InValue) const;
+};
+
+//这个结构体就是定义有范围限制的一个向量了
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveVectorScope
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	FCqsjFlowMoveFloatScope X_Scope = FCqsjFlowMoveFloatScope();
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	FCqsjFlowMoveFloatScope Y_Scope = FCqsjFlowMoveFloatScope();
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	FCqsjFlowMoveFloatScope Z_Scope = FCqsjFlowMoveFloatScope();
+
+	FCqsjFlowMoveVectorScope(){}
+	bool InScope(const FVector InValue) const ;//这个函数进行检查是否在范围内
+};
 
 
 
