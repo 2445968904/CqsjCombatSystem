@@ -729,6 +729,57 @@ struct FFlowMoveSceneTypeCondition
 	TSet<FName> SceneTypeCondition ; 
 };
 
+USTRUCT(BlueprintType)
+struct FFlowMoveMomentModeCondition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	TEnumAsByte<EInclusivityType> ConditionType = EInclusivityType::Include_;
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	TSet<TEnumAsByte<EMovementMode>> EMovementMode;
+	
+	
+};
+
+UENUM(BlueprintType)
+enum EInputValueConditionType
+{
+	HasValue,
+	HasNoValue,
+	Range
+};
+
+USTRUCT(BlueprintType)
+struct FFlowMoveMoveVectorCondition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	TEnumAsByte<EInputValueConditionType> ConditionType = EInputValueConditionType::HasValue;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings",
+		meta=(EditConditionHides,EditCondition="ConditionType == EInputValueConditionType::Range"))
+	TArray<FCqsjFlowMoveFloatScope> MoveVectorSizeRange;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings",
+		meta=(EditConditionHides,EditCondition="ConditionType == EInputValueConditionType::Range"))
+	TArray<FCqsjFlowMoveVectorScope> MoveVectorRange;
+
+	bool IsMet(const FCqsjFlowMoveState& FlowMoveState);
+	bool IsMet(const FVector& MoveVector);
+};
+
+UENUM(BlueprintType)
+enum EDirectionConditionType
+{
+	ValueRange,
+	MarkInclude,
+	MarkNotInclude
+};
+
+
 
 
 UCLASS()
