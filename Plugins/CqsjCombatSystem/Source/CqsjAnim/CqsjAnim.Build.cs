@@ -1,8 +1,8 @@
 ﻿using UnrealBuildTool;
 
-public class CqsjFlowMove : ModuleRules
+public class CqsjAnim : ModuleRules
 {
-    public CqsjFlowMove(ReadOnlyTargetRules Target) : base(Target)
+    public CqsjAnim(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -10,9 +10,6 @@ public class CqsjFlowMove : ModuleRules
             new string[]
             {
                 "Core",
-                "GameplayTags", 
-                "InputCore",
-                "CqsjAnim"
             }
         );
 

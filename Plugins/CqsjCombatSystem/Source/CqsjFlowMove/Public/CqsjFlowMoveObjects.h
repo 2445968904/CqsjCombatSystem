@@ -5,6 +5,7 @@
 #include "UObject/Object.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
+#include "CqsjAnimFuncLib.h"
 #include "CqsjFlowMoveObjects.generated.h"
 
 /**
@@ -369,7 +370,7 @@ enum class ECqsjFlowMoveDirectionType : uint8
 };
 
 UENUM(BlueprintType)
-enum EGBWFlowMoveScenePointType
+enum ECqsjFlowMoveScenePointType
 {
 	TargetPoint,
 	ActorPoint,
@@ -779,8 +780,216 @@ enum EDirectionConditionType
 	MarkNotInclude
 };
 
+USTRUCT(BlueprintType)
+struct FCqsjMoveSceneDirectionCondition
+{
+	GENERATED_BODY()
 
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Settings")
+	TEnumAsByte<EDirectionConditionType> ConditionType = EDirectionConditionType::MarkInclude;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings",
+		meta=(EditConditionHides,EditCondition="ConditionType == EDirectionConditionType::ValueRange"))
+	TArray<FCqsjFlowMoveFloatScope> SceneDirectionRange;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings",
+		meta=(EditConditionHides,EditCondition="ConditionType == EDirectionConditionType::MarkInclude || ConditionType == EDirectionConditionType::MarkNotInclude"))
+	TSet<ECqsjFlowMoveDirectionType> DirectionMark;
+
+	bool IsMet(const FCqsjFlowMoveScene& FlowMoveScene) const;
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveActionLockState
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	bool bHasLock = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	FGameplayTagQuery ActionToLock = FGameplayTagQuery();
+
+	bool IsLock(FGameplayTag ForActionTag) const;
+};
+
+UENUM(BlueprintType)
+enum ECqsjFlowMoveActionLockStateSettingsType
+{
+	DoNothing,
+	Set,
+	ClearAll
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveActionLockStateSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	FGameplayTagQuery ActionToLock = FGameplayTagQuery();
+
+	FCqsjFlowMoveActionLockStateSettings(){}
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveAnimCurveState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FName Name = NAME_None;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Value = 0.0f;
+	
+	FCqsjFlowMoveAnimCurveState(){}
+	FCqsjFlowMoveAnimCurveState(FName InName, float InValue)
+	{
+		Name = InName;
+		Value = InValue;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveAnimPlayRateAdjustSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bUseSpeedAdjustAnimPlayRate = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float AnimPlayRateAdjustReferenceSpeed = 1500.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float AdjustAnimPlayRateScale = 1.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Min_AnimPlayRate = 1.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Max_AnimPlayRate = 3.0f;
+	
+	FCqsjFlowMoveAnimPlayRateAdjustSettings(){}
+};
+
+UENUM(BlueprintType)
+enum EFlowMoveDirectionType
+{
+	ActorForward,
+	Velocity,
+	Controller,
+	CurrentMoveToDirection,
+	TargetMoveToDirection,
+	ActorToTarget,
+	StartPointToTarget
+};
+
+USTRUCT(BlueprintType)
+struct FCqsjFlowMoveControlParam
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsActive = false;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings|Action")
+	FGuid ActionGuid = FGuid();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings|Action")
+	FGameplayTag ActionTag = FGameplayTag();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings|Action")
+	FGameplayTag ActionTargetScene = FGameplayTag();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings|Action")
+	TEnumAsByte<ECqsjFlowMoveScenePointType> ActionTargetPoint = ECqsjFlowMoveScenePointType::TargetPoint;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjAnimPlayStateSet AnimPlayStateSet = FCqsjAnimPlayStateSet();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjFlowMoveAnimPlayRateAdjustSettings AnimPlayRateAdjust = FCqsjFlowMoveAnimPlayRateAdjustSettings();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float AnimPlayRateNow = 1.0f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float ToTargetPointRate = 0.0f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float TargetGravity = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float GravitySmoothSpeed = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float Gravity = 0.0f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float RotationLockToMoveDirectionYaw = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	TEnumAsByte<EFlowMoveDirectionType> RotationLockTo = EFlowMoveDirectionType::CurrentMoveToDirection;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float RotationLockToSmoothSpeed = 12.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float TargetMoveSpeed = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float MoveSpeedSmoothSpeed = 6.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float MoveSpeed = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float MaxMoveSpeed = 5000.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float ConstrainMoveTime = 0.3f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float InertiaTime = 0.3f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float CompensateLostSpeedToCurrentSpeedDirection = false;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float MoveToDirectionSmoothSpeed = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector PathOffset = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FRotator RotationOffset = FRotator::ZeroRotator;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	FVector MoveToDirection = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	float PostureAdjustAmplitude = 30.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	float PostureAdjustReferenceSpeed = 1000.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float DeltaToTargetPointRate = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float DeltaGravity = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float DeltaRotationLockToMoveDirectionYaw = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float DeltaMoveSpeed = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float DeltaMoveToDirectionSmoothSpeed = 0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FVector DeltaPathOffset = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FRotator DeltaRotationOffset = FRotator::ZeroRotator;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_Gravity = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_RotationLockToMoveDirectionYaw = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_MoveSpeed = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_MoveToDirectionSmoothSpeed = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_MaxSpeed = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_ConstrainMoveToTargetPlane = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_UseInertia = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool bIsLock_UsePostureAdjust = false;
+	
+	FCqsjFlowMoveControlParam(){}
+
+	bool HasActiveAnimCurveState(FName InName) const;
+};
 
 UCLASS()
 class CQSJFLOWMOVE_API UCqsjFlowMoveObjects : public UObject

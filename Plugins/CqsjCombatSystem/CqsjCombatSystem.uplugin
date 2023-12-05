@@ -23,6 +23,11 @@
 			"Name": "CqsjFlowMove",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "CqsjAnim",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	]
 }
