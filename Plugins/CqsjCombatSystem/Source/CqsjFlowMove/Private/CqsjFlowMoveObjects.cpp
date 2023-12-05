@@ -54,3 +54,46 @@ UWorld* UCqsjFlowMoveObject_Base::GetWorld() const
 	}
 	return nullptr;
 }
+
+bool FFlowMoveMoveVectorCondition::IsMet(const FCqsjFlowMoveState& FlowMoveState)
+{
+	return true;
+}
+
+void UCqsjFlowMovePerception_Base::SetCache(FCqsjFlowMoveScene TheFlowMoveSceneCache)
+{
+	
+}
+
+bool UCqsjFlowMovePerception_Base::GetCache(FCqsjFlowMoveScene& Result, const bool bConsume)
+{
+	return true;
+}
+
+
+
+bool UCqsjFlowMovePerception_Base::GetPerceptionResult_Implementation(FCqsjFlowMoveScene& FlowMoveScene,
+	ECqsjFlowMoveEventType EventType, ACharacter* OwnerCharacter, UCqsjFlowMoveComponent* FlowMoveComponent)
+{
+	return  true;
+}
+
+bool UCqsjFlowMovePerception_Base::GetThePerceptionResult(FCqsjFlowMoveScene& FlowMoveScene,
+	const ECqsjFlowMoveEventType EventType, ACharacter* OwnerCharacter, UCqsjFlowMoveComponent* FlowMoveComponent)
+{
+	return true;
+}
+
+void UCqsjFlowMovePerception_Base::OnUpdate_Implementation(FGameplayTag PerceptionKey, ECqsjFlowMoveEventType EventType,
+                                                           UCqsjFlowMoveComponent* FlowMoveComponent)
+{
+}
+
+void UCqsjFlowMovePerception_Base::CheckCopyCache()
+{
+}
+
+UCqsjFlowMovePerception_Base* UCqsjFlowMovePerception_Base::GetCopy(UObject* Outer)
+{
+	return  nullptr;
+}

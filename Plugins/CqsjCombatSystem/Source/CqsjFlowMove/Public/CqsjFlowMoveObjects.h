@@ -1243,7 +1243,65 @@ class UCqsjFlowMovePerception_Base : public UCqsjFlowMoveObject_Base
 	GENERATED_BODY()
 
 public:
+	UCqsjFlowMovePerception_Base()
+	{}
+
+	UPROPERTY(BlueprintReadOnly,EditAnywhere,Category="PerceptionSettings")
+	bool bIsDefaultActive = false;
+
+	bool bIsActive = false;
+
+	FCqsjFlowMoveScene FlowMoveSceneCache = FCqsjFlowMoveScene();
+	bool bHasCache = false;
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|FlowMove|Perception")
+	void SetCache(FCqsjFlowMoveScene TheFlowMoveSceneCache);
+	//返回的就是用户放在Result下面的变量
+	UFUNCTION(BlueprintCallable,Category= "Cqsj|FlowMove|Perception")
+	bool GetCache(FCqsjFlowMoveScene& Result,const bool bConsume = true);
+
+	UFUNCTION(BlueprintNativeEvent,Category = "Cqsj|FlowMove|Perception")
+	bool GetPerceptionResult(
+			FCqsjFlowMoveScene& FlowMoveScene,
+			ECqsjFlowMoveEventType EventType,
+			ACharacter* OwnerCharacter,
+			UCqsjFlowMoveComponent* FlowMoveComponent);
+
+	virtual bool GetPerceptionResult_Implementation(
+		FCqsjFlowMoveScene& FlowMoveScene,
+		ECqsjFlowMoveEventType EventType,
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent
+	);
+
+	UFUNCTION(BlueprintCallable,Category="Cqsj|FlowMove|Perception")
+		bool GetThePerceptionResult(
+			FCqsjFlowMoveScene& FlowMoveScene,
+			const ECqsjFlowMoveEventType EventType,
+			ACharacter* OwnerCharacter,
+			UCqsjFlowMoveComponent* FlowMoveComponent
+		);
+
+	UFUNCTION(BlueprintNativeEvent,Category="Cqsj|FlowMove|Perception")
+	void OnUpdate(
+		FGameplayTag PerceptionKey,
+		ECqsjFlowMoveEventType EventType,
+		UCqsjFlowMoveComponent* FlowMoveComponent
+	);
+	virtual auto OnUpdate_Implementation(
+		FGameplayTag PerceptionKey,
+		ECqsjFlowMoveEventType EventType,
+		UCqsjFlowMoveComponent* FlowMoveComponent
+	) -> void;
+	UFUNCTION(BlueprintCallable,Category="Cqsj|FlowMove|Perception")
+	void Update (FGameplayTag PerceptionKey,ECqsjFlowMoveEventType EventType,
+		UCqsjFlowMoveComponent*FlowMoveComponent){OnUpdate(PerceptionKey,EventType,FlowMoveComponent);}
+
+	UPROPERTY()
+	TMap<UObject*,UCqsjFlowMovePerception_Base*> CopyCache;
+	void CheckCopyCache();
 	
+	UCqsjFlowMovePerception_Base* GetCopy(UObject * Outer);
 };
 
 
@@ -1252,5 +1310,5 @@ class CQSJFLOWMOVE_API UCqsjFlowMoveObjects : public UObject
 {
 	GENERATED_BODY()
 public:
-	UCqsjFlowmovepe
+	
 };
