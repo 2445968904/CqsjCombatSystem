@@ -1238,7 +1238,7 @@ enum EFlowMoveNetworkLocationType
 //END struct
 
 UCLASS(Blueprintable,DefaultToInstanced,EditInlineNew,HideDropdown,meta=(DisplayName="CqsjFlowMovePerception_Base"))
-class UCqsjFlowMovePerception_Base : public UCqsjFlowMoveObject_Base
+class CQSJFLOWMOVE_API UCqsjFlowMovePerception_Base : public UCqsjFlowMoveObject_Base
 {
 	GENERATED_BODY()
 
@@ -1303,6 +1303,303 @@ public:
 	
 	UCqsjFlowMovePerception_Base* GetCopy(UObject * Outer);
 };
+
+UCLASS(Blueprintable, DefaultToInstanced, EditInlineNew, HideDropdown, meta = (DisplayName = "GBWFlowMoveScript_Base"))
+class CQSJFLOWMOVE_API UCqsjFlowMoveScript_Base : public UCqsjFlowMoveObject_Base
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadOnly,EditAnywhere,Category="ScriptSettings")
+	bool bIsDefaultActive = false;
+	
+	UCqsjFlowMoveScript_Base()
+	{}
+	
+	UFUNCTION(BlueprintNativeEvent, Category = "Cqsj|FlowMove")
+	void OnUpdate(
+		ECqsjFlowMoveEventType EventType,
+		EFlowMoveNetworkLocationType NetworkLocation,
+		bool bIsLocalOwn,
+		UCqsjFlowMoveComponent* FlowMoveComponent);
+	virtual void OnUpdate_Implementation(
+		ECqsjFlowMoveEventType EventType,
+		EFlowMoveNetworkLocationType NetworkLocation,
+		bool bIsLocalOwn,
+		UCqsjFlowMoveComponent* FlowMoveComponent){}
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove")
+	void Update(
+		ECqsjFlowMoveEventType EventType,
+		EFlowMoveNetworkLocationType NetworkLocation,
+		bool bIsLocalOwn,
+		UCqsjFlowMoveComponent* FlowMoveComponent);
+
+	UPROPERTY()
+	TMap<UObject*,UCqsjFlowMoveScript_Base*> CopyCache;
+	void CheckCopyCache();
+	UCqsjFlowMoveScript_Base* GetCopy(UObject* Outer);
+};
+
+UCLASS(Blueprintable,DefaultToInstanced,EditInlineNew,HideDropdown,meta=(DisplayName = "CqsjFlowMoveGetFocusActor_Base"))
+class CQSJFLOWMOVE_API UCqsjFlowMoveGetFocusActor_Base : public UCqsjFlowMoveObject_Base
+{
+	GENERATED_BODY()
+
+public:
+	UCqsjFlowMoveGetFocusActor_Base()
+	{}
+	//定义为BlueprintNativeEvent 就可以在蓝图中进行覆写 _Implementation
+	UFUNCTION(BlueprintNativeEvent, Category = "Cqsj|FlowMove")
+	USceneComponent* OnGetFocusActor(
+		UCqsjFlowMoveComponent* FlowMoveComponent);
+	virtual USceneComponent* OnGetFocusActor_Implementation(
+		UCqsjFlowMoveComponent* FlowMoveComponent);
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove")
+	USceneComponent* GetFocusActor(
+		UCqsjFlowMoveComponent* FlowMoveComponent);
+
+	UFUNCTION(BlueprintCallable, Category="Cqsj|FlowMove")
+	bool TestVisibility(
+		AActor* StartActor,
+		AActor* EndActor,
+		FCqsjFlowMoveTraceSetting TraceSetting,
+		FVector& TouchPoint);
+};
+
+//这是ActionTree 并且有一个ActionTreeeNodeType这个枚举
+UENUM(BlueprintType)
+enum EFlowMoveActionTreeNodeType
+{
+	TransitNode,
+	ActionNode
+};
+UCLASS(Blueprintable, DefaultToInstanced, EditInlineNew, meta = (DisplayName = "ActionTreeNode"))
+class CQSJFLOWMOVE_API UCqsjFlowMoveActionTree : public UCqsjFlowMoveObject_Base
+{
+	GENERATED_BODY()
+public:
+	UCqsjFlowMoveActionTree()
+	{}
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings", meta=(MultiLine=true))
+	FText Description = FText::FromString("Some Description For This Action Tree");
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	TEnumAsByte<EFlowMoveActionTreeNodeType> TreeNodeType = EFlowMoveActionTreeNodeType::ActionNode;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings", meta=(EditConditionHides, EditCondition="TreeNodeType == EFlowMoveActionTreeNodeType::ActionNode"))
+	FGameplayTag ActionTag = FGameplayTag();
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings", meta=(EditConditionHides, EditCondition="TreeNodeType == EFlowMoveActionTreeNodeType::ActionNode"))
+	FGameplayTag ActionTargetScene = FGameplayTag();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings", meta=(EditConditionHides, EditCondition="TreeNodeType == EFlowMoveActionTreeNodeType::ActionNode"))
+	FCqsjFlowMoveAnimSetting ActionAnim = FCqsjFlowMoveAnimSetting();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category="Settings", meta=(EditConditionHides, EditCondition="TreeNodeType == EFlowMoveActionTreeNodeType::TransitNode"))
+	TMap<FName, UCqsjFlowMoveActionTree*> ActionTrees;
+	
+	bool IsActionValid() const;
+};
+
+USTRUCT(BlueprintType)
+struct FFlowMoveActionNodeCache
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	FString ActionName = "";
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	FGameplayTag ActionTag = FGameplayTag();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Settings")
+	UCqsjFlowMoveActionTree* ActionNode = nullptr;
+	
+	FFlowMoveActionNodeCache(){}
+	FFlowMoveActionNodeCache(
+		FString InActionName,
+		FGameplayTag InActionTag,
+		UCqsjFlowMoveActionTree* InActionNode)
+	{
+		ActionName = InActionName;
+		ActionTag = InActionTag;
+		ActionNode = InActionNode;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FFlowMoveAnimCurveNameSetting
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName ToTargetPointRate = FName("FM.ToTargetRate");
+	
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName Gravity = FName("FM.Gravity");
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName RotationLockToMoveDirectionYaw = FName("FM.RotLock");
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName MoveSpeed = FName("FM.MoveSpeed");
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName MoveToDirectionSmoothSpeed = FName("FM.MoveToDirectionSmoothSpeed");
+	
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName PathOffset_Forward = FName("FM.F");
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName PathOffset_Right = FName("FM.R");
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName PathOffset_Up = FName("FM.U");
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName RotationOffset_Pitch = FName("FM.Pitch");
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName RotationOffset_Yaw = FName("FM.Yaw");
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
+	FName RotationOffset_Roll = FName("FM.Roll");
+};
+
+UCLASS(Blueprintable, DefaultToInstanced, EditInlineNew, meta = (DisplayName = "GBWFlowMoveBrain_Base"))
+class CQSJFLOWMOVE_API UCqsjFlowMoveBrain_Base : public UCqsjFlowMoveObject_Base
+{
+	//Brain是MoveObject_Base的一个子类
+	GENERATED_BODY()
+public:
+	UCqsjFlowMoveBrain_Base(){}
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="FlowMoveSettings|AnimState")
+	FCqsjAnimStateGetType AnimStateGetType = FCqsjAnimStateGetType();
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="FlowMoveSettings|View")
+	TEnumAsByte<EFlowMoveCharacterViewMode> DefaultViewMode = EFlowMoveCharacterViewMode::TP_ForwardLockMode;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="FlowMoveSettings|Input")
+	float MoveVectorZeroFaultToleranceDuration = 0.1f;//移动向量零容错时长 Tolerance
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="FlowMoveSettings|Input"
+		,meta=(InlineEditConditionToggle))
+	bool bUseDefaultMoveVectorWhenZero = true;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="FlowMoveSettings|Input"
+		,meta=(EditCondition="bUseDefaultMoveVectorWhenZero"))
+	FVector DefaultMoveVector = FVector(1,0,0);
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="FlowMoveSettings|Input")
+	FFlowMoveInputValueTrigger_PerceptionInput PerceptionInputSettings = FFlowMoveInputValueTrigger_PerceptionInput();
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "FlowMoveSettings|State")
+	FGameplayTag ActionStateKey = FGameplayTag();
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "FlowMoveSettings|State")
+	FGameplayTag ActionEventKey_Start = FGameplayTag();
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "FlowMoveSettings|State")
+	FGameplayTag ActionEventKey_End = FGameplayTag();
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "FlowMoveSettings|State")
+	FGameplayTag ActionEventValueKey = FGameplayTag();
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "FlowMoveSettings|Movement")
+	FFlowMoveAnimCurveNameSetting AnimCurveNameSetting = FFlowMoveAnimCurveNameSetting();
+	
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "FlowMoveSettings|ResourcePool",meta=(ForceInlineRow))
+	TMap<FGameplayTag, UCqsjFlowMovePerception_Base*> FlowMovePerceptronSet;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "FlowMoveSettings|ResourcePool",meta=(ForceInlineRow))
+	TMap<FGameplayTag, UCqsjFlowMoveScript_Base*> FlowMoveScriptSet;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "FlowMoveSettings|ResourcePool",meta=(ForceInlineRow))
+	TMap<FGameplayTag, UCqsjFlowMoveGetFocusActor_Base*> FlowMoveGetTargetFunctionSet;
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Cqsj|FlowMove|Event")
+	void OnFlowMoveEvent(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		FCqsjFlowMoveState FlowMoveState,
+		const FFlowMoveEvent& FlowMoveEvent);
+	virtual void OnFlowMoveEvent_Implementation(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		FCqsjFlowMoveState FlowMoveState,
+		const FFlowMoveEvent& FlowMoveEvent);
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove|Event")
+	void OnFMEvent(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		FCqsjFlowMoveState FlowMoveState,
+		const FFlowMoveEvent& FlowMoveEvent);
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Cqsj|FlowMove|State")
+	void GetFlowMoveIsActive(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsActive,
+		bool& WaitForCurrentActionFinished);
+	virtual void GetFlowMoveIsActive_Implementation(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsActive,
+		bool& WaitForCurrentActionFinished);
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove|State")
+	void GetFMIsActive(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsActive,
+		bool& WaitForCurrentActionFinished);
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Cqsj|FlowMove|Input")
+	void GetMoveVector(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsGet,
+		FVector& MoveVector);
+	virtual void GetMoveVector_Implementation(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsGet,
+		FVector& MoveVector);
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove|Input")
+	void GetFmMoveVector(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsGet,
+		FVector& MoveVector);
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Cqsj|FlowMove|Input")
+	void GetControlVector(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsGet,
+		FVector& ControlVector);
+	virtual void GetControlVector_Implementation(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsGet,
+		FVector& ControlVector);
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove|Input")
+	void GetFMControlVector(
+		ACharacter* OwnerCharacter,
+		UCqsjFlowMoveComponent* FlowMoveComponent,
+		float DeltaTime,
+		FCqsjFlowMoveState FlowMoveState,
+		bool& bIsGet,
+		FVector& ControlVector);
+};
+
+
+
+
+
+
 
 
 UCLASS()

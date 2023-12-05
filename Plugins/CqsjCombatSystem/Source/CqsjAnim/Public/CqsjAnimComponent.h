@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "CqsjPowerfulAnimInstance.h"
 #include "CqsjAnimComponent.generated.h"
 
 
@@ -276,4 +277,23 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
+};
+
+USTRUCT(BlueprintType,meta=(DisplayName="CqsjConditionMontage"))
+struct FCqsjAnimStateGetType
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool IncludeMainAnimInstance = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool IncludeLinkedAnimInstance = true;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings",
+		meta=(EditCondition="IncludeLinkedAnimInstance"))
+	TArray<TSubclassOf<UAnimInstance>> IncludeLinkedAnimInstanceClassSet = {UCqsjPowerfulAnimInstance::StaticClass()};
+	/*UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings",
+		meta=(EditCondition="IncludeMainAnimInstance"))
+	TSet<FName> IncludeLinkedAnimInstanceTagSet = {};*/
+
+	FCqsjAnimStateGetType(){}
 };
