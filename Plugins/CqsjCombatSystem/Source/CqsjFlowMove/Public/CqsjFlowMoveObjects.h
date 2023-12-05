@@ -731,7 +731,7 @@ struct FFlowMoveSceneTypeCondition
 };
 
 USTRUCT(BlueprintType)
-struct FFlowMoveMomentModeCondition
+struct FFlowMoveMovementModeCondition
 {
 	GENERATED_BODY()
 
@@ -781,7 +781,7 @@ enum EDirectionConditionType
 };
 
 USTRUCT(BlueprintType)
-struct FCqsjMoveSceneDirectionCondition
+struct FFlowMoveSceneDirectionCondition
 {
 	GENERATED_BODY()
 
