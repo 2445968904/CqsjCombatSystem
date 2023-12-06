@@ -28,6 +28,11 @@
 			"Name": "CqsjAnim",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "CqsjRMS",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	]
 }

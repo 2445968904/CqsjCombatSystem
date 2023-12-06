@@ -3,33 +3,279 @@
 
 #include "CqsjFlowMoveFuncLib.h"
 
+#include "Engine/SkeletalMeshEditorData.h"
+#include "Kismet/GameplayStatics.h"
+
 bool UCqsjFlowMoveFuncLib::GetSKMeshByTag(USkeletalMeshComponent*& SKMeshComp, ACharacter* Character, FName MeshTag,
-	TArray<FName> ExcludedMeshTag, UAnimationAsset* TargetAnimationAsset)
+                                          TArray<FName> ExcludedMeshTag, UAnimationAsset* TargetAnimationAsset)
 {
-	return true;
+	SKMeshComp = nullptr;
+	if(Character && TargetAnimationAsset)
+	{
+		auto SKMeshes = Character->GetComponentsByTag(USkeletalMeshComponent::StaticClass(),MeshTag);
+		if(SKMeshes.IsEmpty())
+		{
+			Character->GetComponents(USkeletalMeshComponent::StaticClass(),SKMeshes);
+		}
+
+		for(const auto SkMeshItem:SKMeshes)
+		{
+			bool bIsExcluded = false;
+			for(const auto ETag:ExcludedMeshTag)
+			{
+				if(SkMeshItem->ComponentHasTag(ETag))
+				{
+					bIsExcluded=true;
+					break;
+				}
+			}
+
+			if(!bIsExcluded)
+			{
+				USkeletalMeshComponent * SKMC =Cast<USkeletalMeshComponent>(SkMeshItem);
+				USkeletalMesh* SKMS = nullptr;
+				if(SKMC)
+				{
+#if ENGINE_MAJOR_VERSION ==5 && ENGINE_MINOR_VERSION >0
+					SKMS= SKMC->GetSkeletalMeshAsset();
+#else
+					SKMS=SKMC->SkeletalMesh;
+#endif
+					
+				}
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION>0
+#else
+				if(SKMS->GetSkeleton()->IsCompatible(TargetAnimationAsset->GetSkeleton()))
+#endif
+				{
+					if(SKMS->GetSkeleton()->IsCompatible(TargetAnimationAsset->GetSkeleton()))
+					{
+						SKMeshComp =SKMC;
+						return true;
+					}
+				}
+				//
+			}
+		}
+	}
+	return false;
 }
 
 bool UCqsjFlowMoveFuncLib::IsLocalOwn(AActor* Actor)
 {
-	return true;
+	bool bRes;
+
+	if(Actor)
+	{
+		const ENetRole LocalRole =Actor -> GetLocalRole();
+		const ENetRole RemoteRole = Actor->GetRemoteRole();
+		//如果说本地是权威的(这个函数就是服务器的local)
+		if(LocalRole == ENetRole::ROLE_Authority)
+		{
+
+			bRes = true;
+			
+		}
+		//这个用于判断这个actor是不是玩家本地拥有
+		else
+		{
+			if(LocalRole == ENetRole::ROLE_AutonomousProxy)
+			{
+				bRes = true;
+			}
+			else
+			{
+				bRes = false;
+			}
+		}
+	}
+	else
+	{
+		bRes=false;
+	}
+	return bRes;
 }
 
 bool UCqsjFlowMoveFuncLib::IsAIPlayer(AActor* Actor)
 {
-	return true;
-}
+	bool bRes;
 
+	if(Actor)
+	{
+		const ENetRole LocalRole = Actor ->GetLocalRole();
+		const ENetRole RemoteRole = Actor->GetRemoteRole();
+	//在服务器上是权威,客户端没有代理权,且不是玩家的角色 就可以判断这是AI了
+		bRes =LocalRole == ENetRole::ROLE_Authority
+		&& RemoteRole != ENetRole::ROLE_AutonomousProxy
+		&& Actor != UGameplayStatics::GetPlayerCharacter(Actor,0);
+	}
+	else
+	{
+		bRes = false ;
+	}
+	
+	return bRes;
+}
+//执行多行扫描
 FHitResult UCqsjFlowMoveFuncLib::SweepMulti(const UWorld* World, TArray<FHitResult>& OutHits, const FVector& Start,
 	const FVector& End, const FQuat& Rot, FCqsjFlowMoveTraceSetting TraceSetting, const FCollisionShape& CollisionShape,
 	const FCollisionQueryParams& Params)
 {
-	return FHitResult();
+	FHitResult Res = FHitResult();
+	if(!World)
+	{
+		return Res;
+	}
+	if(TraceSetting.TraceObjectTypes.IsEmpty() && TraceSetting.TraceChannels.IsEmpty())
+	{
+		return Res;
+	}
+	//以上都表示没有有效的设置
+	TArray <FHitResult> ObjectTypeOutHits;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	for(const auto ObjectType : TraceSetting.TraceObjectTypes)
+	{
+		ObjectQueryParams.AddObjectTypesToQuery(UCollisionProfile::Get()->ConvertToCollisionChannel(false,ObjectType));
+	}
+
+	World->SweepMultiByObjectType(
+		ObjectTypeOutHits,
+		Start,
+		End,
+		Rot,
+		ObjectQueryParams,
+		CollisionShape,
+		Params
+	);
+	
+	TArray<FHitResult> ChannelOutHits;
+	for(const auto Channel:TraceSetting.TraceChannels)
+	{
+		TArray<FHitResult> TempChannelOutHits;
+		World->SweepMultiByChannel(
+			ChannelOutHits,
+			Start,
+			End,
+			Rot,
+			UEngineTypes::ConvertToCollisionChannel(Channel),
+			CollisionShape,
+			Params
+		);
+		TempChannelOutHits.Append(TempChannelOutHits);
+	}
+	//确保不会重复添加一个对象到数组里去
+	TArray<AActor*> ResultOutHits;
+	OutHits.Empty();
+	for(auto Item : ObjectTypeOutHits)
+	{
+		if(!ResultOutHits.Contains(Item.GetActor()))
+		{
+			OutHits.Add(Item);
+			ResultOutHits.Add(Item.GetActor());
+		}
+	}
+
+	for(auto Item : ChannelOutHits)
+	{
+		if(Item.IsValidBlockingHit()&&!ResultOutHits.Contains(Item.GetActor()))
+		{
+			OutHits.Add(Item);
+			ResultOutHits.Add(Item.GetActor());
+		}
+	}
+
+	if(TraceSetting.isDebug && TraceSetting.DebugTime>=0)
+	{
+		if(TraceSetting.DrawTraceShape)
+		{
+			DrawDebugShape(World,Start,FQuat::Identity,CollisionShape,
+				!OutHits.IsEmpty()? FColor::Red : FColor::White,
+				TraceSetting.DebugTime,1);
+			DrawDebugShape(World,End,FQuat::Identity,CollisionShape,
+				!OutHits.IsEmpty()?FColor::Red : FColor::White,
+				TraceSetting.DebugTime,1);
+		}
+
+		if(!OutHits.IsEmpty())
+		{
+			DrawDebugSphere(World,OutHits[0].ImpactPoint,5,8,
+				FColor::Green,
+				false,TraceSetting.DebugTime,0,10);
+		}
+
+		if(TraceSetting.DrawTraceLine)
+		{
+			DrawDebugLine(World,Start,End,
+							!OutHits.IsEmpty()? FColor::Red : FColor::White,
+							false , TraceSetting.DebugTime,0,10);
+		}
+	}
+
+	if(!OutHits.IsEmpty())
+	{
+		Res = OutHits [0];
+	}
+	else
+	{
+		Res.TraceStart = Start;
+		Res.TraceEnd = End;
+	}
+	for(auto Hit : OutHits)
+	{
+		if(Hit.IsValidBlockingHit())
+		{
+			Res = Hit ;
+			break;
+		}
+	}
+
+	if(Res.GetActor() && !TraceSetting.IsMetScreeningConditions(Res.GetActor()))
+	{
+		Res = FHitResult();
+	}
+	return Res;
 }
 
 bool UCqsjFlowMoveFuncLib::OverlapAnyTest(const UWorld* World, const FVector& Pos, const FQuat& Rot,
-	FCqsjFlowMoveTraceSetting TraceSetting, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Parms)
+	FCqsjFlowMoveTraceSetting TraceSetting, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params)
 {
-	return true;
+	if(!World)
+	{
+		return false;
+	}
+	if(TraceSetting.TraceObjectTypes.IsEmpty() && TraceSetting.TraceChannels.IsEmpty())
+	{
+		return false;
+	}
+
+	FCollisionObjectQueryParams ObjectQueryParameters;
+	for(const auto ObjectType:TraceSetting.TraceObjectTypes)
+	{
+		ObjectQueryParameters.AddObjectTypesToQuery(UCollisionProfile::Get()->ConvertToCollisionChannel(false,ObjectType));
+	}
+	if(World->OverlapAnyTestByObjectType(
+		Pos,
+		Rot,
+		ObjectQueryParameters,
+		CollisionShape,
+		Params))
+	{
+		return true;
+	}
+
+	for(auto Item : TraceSetting.TraceChannels)
+	{
+		if(World->OverlapAnyTestByObjectType(
+			Pos,
+			Rot,
+			UEngineTypes::ConvertToCollisionChannel(Item),
+			CollisionShape,
+			Params))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 FHitResult UCqsjFlowMoveFuncLib::LineTrace(const UWorld* World, TArray<FHitResult>& OutHits, const FVector& Start,

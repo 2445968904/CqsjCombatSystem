@@ -12,6 +12,41 @@
 #include "Engine/SkeletalMesh.h"
 
 
+bool FCqsjFlowMoveTraceSetting::IsMetScreeningConditions(const AActor* InActor)
+{
+	//判断Class和Tag是否满足条件
+	if(!InActor)
+	{
+		return false;
+	}
+	if(!UseScreeningConditions
+		||(ActorWithClass.IsEmpty()&& ActorWithTag.IsEmpty()))
+	{
+		return true;
+	}
+
+	bool bIsMetActorClass =false;
+	bool bIsMetActorTag =false;
+	for(auto Class : ActorWithClass)
+	{
+		if(IsValid(Class) && InActor->GetClass()->IsChildOf(Class))
+		{
+			bIsMetActorClass = true;
+			break;
+		}
+	}
+	for(const auto Tag:ActorWithTag)
+	{
+		if(InActor->ActorHasTag(Tag))
+		{
+			bIsMetActorTag = true;
+			break;
+		}
+	}
+
+	return bIsMetActorClass || bIsMetActorTag ;
+}
+
 bool UCqsjFlowMoveObject_Base::IsNameStableForNetworking() const
 {
 	return true;
