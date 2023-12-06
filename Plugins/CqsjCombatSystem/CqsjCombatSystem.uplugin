@@ -33,6 +33,11 @@
 			"Name": "CqsjRMS",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "CqsjPowerfulState",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	]
 }

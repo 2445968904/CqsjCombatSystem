@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CqsjRMSInterface.h"
+#include "GameFramework/Character.h"
 #include "UObject/Object.h"
 #include "CqsjRMSBPFuncLib.generated.h"
 
@@ -20,7 +21,23 @@ public:
 		FName& InstanceName,
 		TScriptInterface<ICqsjRMSInterface> RMSInterfaceObj,
 		UCharacterMovementComponent* MovementComponent,
-		bool ClearOtherRMS = true
-		
-		);
+		bool ClearOtherRMS = true);
+
+	UFUNCTION(BlueprintCallable,Category="Cqsj|RMS")
+	static bool CqsjRMS_StopRMSCommon(UCharacterMovementComponent * MovementComponent);
+
+	UFUNCTION(BlueprintCallable,Category="Cqsj|RMS")
+	static  FName CqsjRms_GetRmsCommonInstanceName();
+
+	UFUNCTION(BlueprintCallable,Category="Cqsj|RMS")
+	static bool CqsjRms_IsRmsCommonActive (UCharacterMovementComponent * MovementComponent);
+
+	UFUNCTION(BlueprintCallable,Category="Cqsj|RMS")
+	static bool CqsjRms_GetCharacterViewInfo(
+		ACharacter* Character,
+		FVector& ViewLocation,
+		FRotator& ViewRotation,
+		FVector & ForwardVector
+	);
 };
+
