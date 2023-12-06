@@ -1,6 +1,6 @@
 ﻿#include "CqsjRMSModule.h"
 
-#define LOCTEXT_NAMESPACE "FCqsjRMSModule"
+#define LOCTEXT_NAMESPACE "CqsjRMSModule"
 
 void FCqsjRMSModule::StartupModule()
 {

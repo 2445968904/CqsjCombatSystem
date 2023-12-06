@@ -17,7 +17,7 @@ struct CQSJRMS_API FCqsjRMS_Common : public FRootMotionSource
 	GENERATED_BODY()
 	FCqsjRMS_Common();
 
-	virtual ~FCqsjRMS_Common(){}
+	virtual ~FCqsjRMS_Common() override {}
 
 	virtual void PrepareRootMotion(float SimulationTime, float MovementTickTime, const ACharacter& Character, const UCharacterMovementComponent& MoveComponent) override;
 	

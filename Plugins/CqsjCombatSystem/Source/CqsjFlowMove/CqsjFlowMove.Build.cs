@@ -12,7 +12,9 @@ public class CqsjFlowMove : ModuleRules
                 "Core",
                 "GameplayTags", 
                 "InputCore",
-                "CqsjAnim"
+                "CqsjAnim",
+                "CqsjRMS",
+                "CqsjPowerfulState"
             }
         );
 

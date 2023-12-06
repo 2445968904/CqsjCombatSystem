@@ -42,9 +42,10 @@ void UCqsjFlowMoveComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 bool UCqsjFlowMoveComponent::GetRootMotionParamDirect(FTransform& Result, float SimulationTime, float MovementTickTime,
 	const ACharacter& Character, const UCharacterMovementComponent& MovementComponent)
 {
-	return ICqsjFlowMoveInterface::GetRootMotionParamDirect(Result, SimulationTime, MovementTickTime, Character,
-	                                                        MovementComponent);
+	return ICqsjRMSInterface::GetRootMotionParamDirect(Result, SimulationTime, MovementTickTime, Character,
+	                                                   MovementComponent);
 }
+
 
 void UCqsjFlowMoveComponent::OnEvent(const FFlowMoveEvent& FlowMoveEvent)
 {
@@ -60,6 +61,7 @@ void UCqsjFlowMoveComponent::SetMoveVector(FVector NewMoveVector, float ZeroFaul
 
 FVector UCqsjFlowMoveComponent::GetMoveVector(bool Consumed)
 {
+	return FVector();
 }
 
 void UCqsjFlowMoveComponent::SetControlVector(FVector NewControlVector)
@@ -68,6 +70,7 @@ void UCqsjFlowMoveComponent::SetControlVector(FVector NewControlVector)
 
 FVector UCqsjFlowMoveComponent::GetControlVector()
 {
+	return FVector();
 }
 
 void UCqsjFlowMoveComponent::SetPerceptionVector(FVector NewPerceptionVector)
@@ -76,6 +79,7 @@ void UCqsjFlowMoveComponent::SetPerceptionVector(FVector NewPerceptionVector)
 
 FVector UCqsjFlowMoveComponent::GetPerceptionVector()
 {
+	return FVector();
 }
 
 void UCqsjFlowMoveComponent::GetMoveParamForBlendSpace(UBlendSpace* ForBS, float& Direction, float& Speed,
@@ -142,6 +146,7 @@ void UCqsjFlowMoveComponent::TryLockActor(FGameplayTag GetTargetFunctionTag)
 bool UCqsjFlowMoveComponent::CheckSceneChange(const FCqsjFlowMoveScene& NewScene, FGameplayTag TargetScene,
 	FCqsjFlowMoveSceneChangeInfo& ChangeInfo)
 {
+	return false;
 }
 
 void UCqsjFlowMoveComponent::SetFlowMoveScene(const FCqsjFlowMoveScene& NewScene, FGameplayTag TargetScene,
@@ -275,35 +280,43 @@ void UCqsjFlowMoveComponent::ResetMoveControl_Imp()
 
 FCqsjFlowMoveControlParam UCqsjFlowMoveComponent::GetMoveControlParam() const
 {
+	return FCqsjFlowMoveControlParam();
 }
 
 FVector UCqsjFlowMoveComponent::GetMoveToVector(float DeltaTime, bool bUseDefaultMoveVectorWhenZero,
 	const FVector& DefaultMoveVector)
 {
+	return FVector();
 }
 
 bool UCqsjFlowMoveComponent::IsActionNow() const
 {
+	return false;
 }
 
 UCqsjFlowMoveBrain_Base* UCqsjFlowMoveComponent::GetFlowMoveBrain()
 {
+	return FlowMoveBrain;
 }
 
 FVector UCqsjFlowMoveComponent::GetDirectionVector(EFlowMoveDirectionType Type)
 {
+	return FVector();
 }
 
 bool UCqsjFlowMoveComponent::GetScene(FCqsjFlowMoveScene& Scene, FGameplayTag SceneSlot, bool bIsConsume)
 {
+	return false;
 }
 
 bool UCqsjFlowMoveComponent::IsActionLock(FGameplayTagContainer ActionToLock) const
 {
+	return false;
 }
 
 bool UCqsjFlowMoveComponent::IsAnyActionLock() const
 {
+	return false;
 }
 
 void UCqsjFlowMoveComponent::SetCurrentTargetScene(FGameplayTag ActionTargetScene)
@@ -316,34 +329,42 @@ void UCqsjFlowMoveComponent::SetCurrentActionTag(FGameplayTag ActionTag)
 
 FVector UCqsjFlowMoveComponent::GetActionTargetPoint(ECqsjFlowMoveScenePointType ActionTargetPoint)
 {
+	return FVector();
 }
 
 bool UCqsjFlowMoveComponent::IsLocalPlayer(bool bIsReset)
 {
+	return false;
 }
 
 bool UCqsjFlowMoveComponent::IsAIPlayer(bool bIsReset)
 {
+	return false;
 }
 
 bool UCqsjFlowMoveComponent::IsLocalOwn(bool bIsReset)
 {
+	return false;
 }
 
 bool UCqsjFlowMoveComponent::IsInServer(bool bIsReset)
 {
+	return false;
 }
 
 bool UCqsjFlowMoveComponent::IsFlowMoveActive() const
 {
+	return false;
 }
 
 bool UCqsjFlowMoveComponent::IsFlowMoveStopping() const
 {
+	return false;
 }
 
 AActor* UCqsjFlowMoveComponent::GetNetWorkActor(FGuid ActorGuid)
 {
+	return nullptr;
 }
 
 void UCqsjFlowMoveComponent::SpawnNetWorkActor(FGuid ActorGuid, TSubclassOf<AActor> ActorClass, FTransform Transform)
@@ -398,6 +419,7 @@ void UCqsjFlowMoveComponent::AdjustCapsuleAndKeepMeshByCurrentLocation(FCqsjFlow
 
 float UCqsjFlowMoveComponent::GetActorScale() const
 {
+	return 0.0f;
 }
 
 void UCqsjFlowMoveComponent::PostureAdjust(float DeltaTime) const
@@ -434,6 +456,7 @@ void UCqsjFlowMoveComponent::CheckViewMode()
 
 bool UCqsjFlowMoveComponent::CheckUpdateValid()
 {
+	return false ;
 }
 
 void UCqsjFlowMoveComponent::EnsureRMSActivation()
@@ -478,6 +501,7 @@ void UCqsjFlowMoveComponent::OnActionEndEvent(FGameplayTag ActionTag)
 
 bool UCqsjFlowMoveComponent::IsLocked(FGameplayTag ForActionTag) const
 {
+	return false ;
 }
 
 void UCqsjFlowMoveComponent::Recovery()

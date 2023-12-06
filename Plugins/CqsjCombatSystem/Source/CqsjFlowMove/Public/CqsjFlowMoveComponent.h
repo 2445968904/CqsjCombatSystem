@@ -6,11 +6,13 @@
 #include "CqsjFlowMoveInterface.h"
 #include "CqsjFlowMoveObjects.h"
 #include "Components/ActorComponent.h"
+#include "CqsjPowerfulState/Public/CqsjPowerfulStateComponent.h"
+#include "CqsjRMS/Public/CqsjRMSInterface.h"
 #include "CqsjFlowMoveComponent.generated.h"
 
 
 UCLASS(Blueprintable, editinlinenew, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class CQSJFLOWMOVE_API UCqsjFlowMoveComponent : public UActorComponent,public ICqsjFlowMoveInterface
+class CQSJFLOWMOVE_API UCqsjFlowMoveComponent : public UActorComponent,public ICqsjRMSInterface
 {
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFlowMoveDlg, FCqsjFlowMoveState, FlowMoveState);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFlowMoveActionDlg, FGameplayTag, ActionTag);
