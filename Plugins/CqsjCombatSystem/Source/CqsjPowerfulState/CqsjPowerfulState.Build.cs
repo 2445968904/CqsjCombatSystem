@@ -10,6 +10,7 @@ public class CqsjPowerfulState : ModuleRules
             new string[]
             {
                 "Core",
+                "GameplayTags"
             }
         );
 

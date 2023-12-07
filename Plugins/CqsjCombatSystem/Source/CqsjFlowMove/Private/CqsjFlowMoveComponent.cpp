@@ -3,6 +3,8 @@
 
 #include "CqsjFlowMoveComponent.h"
 
+#include "CqsjFlowMoveFuncLib.h"
+
 
 // Sets default values for this component's properties
 UCqsjFlowMoveComponent::UCqsjFlowMoveComponent()
@@ -26,6 +28,40 @@ void UCqsjFlowMoveComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+
+	//TaskState 是一个结构体
+	TaskState.OwnerCharacter = Cast<ACharacter>(GetOwner());
+	TaskState.Timer = 0.0f;
+	TaskState.bIsActive =false ;
+	TaskState.bIsStopping =false;
+	TaskState.FlowMoveComponent =this ;
+
+	if(TaskState.OwnerCharacter)
+	{
+		TArray<UActorComponent*> SKCArr; 
+		TaskState.OwnerCharacter->GetComponents(USkeletalMeshComponent::StaticClass(),SKCArr);
+		
+		MovementCompMaxAccelerationCache = TaskState.OwnerCharacter->GetCharacterMovement()->GetMaxAcceleration();
+
+		if(FlowMoveBrain)
+		{
+			SetFlowMoveViewMode(FlowMoveBrain->DefaultViewMode,true);
+		}
+		
+		bIsConstrainToPlaneCache = TaskState.OwnerCharacter->GetCharacterMovement()->bConstrainToPlane;
+		PlaneConstraintNormalCache = TaskState.OwnerCharacter->GetCharacterMovement()->GetPlaneConstraintNormal();
+		PlaneConstraintOriginCache = TaskState.OwnerCharacter->GetCharacterMovement()->GetPlaneConstraintOrigin();
+	
+		bUseControllerRotationYawCache = TaskState.OwnerCharacter->bUseControllerRotationYaw;
+	}
+	
+	if(IsInServer())
+	{	
+		TaskState.FlowMoveComponentGuid = FGuid::NewGuid();
+		IsAIPlayer();
+
+		
+	}
 	
 }
 
@@ -339,7 +375,21 @@ bool UCqsjFlowMoveComponent::IsLocalPlayer(bool bIsReset)
 
 bool UCqsjFlowMoveComponent::IsAIPlayer(bool bIsReset)
 {
-	return false;
+	if(!TaskState.OwnerCharacter)
+	{
+		return false ; 
+	}
+
+	if(bIsReset)
+	{
+		if(IsInServer())
+		{
+			bIsAIPlayer = UCqsjFlowMoveFuncLib::IsAIPlayer(TaskState.OwnerCharacter);
+			bIsAIPlayerInit =true;
+		}
+	}
+
+	return bIsAIPlayer;
 }
 
 bool UCqsjFlowMoveComponent::IsLocalOwn(bool bIsReset)
@@ -349,7 +399,12 @@ bool UCqsjFlowMoveComponent::IsLocalOwn(bool bIsReset)
 
 bool UCqsjFlowMoveComponent::IsInServer(bool bIsReset)
 {
-	return false;
+	if(!bIsInServerInit || bIsReset)
+	{
+		bIsInServer = IsValid(TaskState.OwnerCharacter) && TaskState.OwnerCharacter->HasAuthority();
+		bIsInServerInit =true ;
+	}
+	return bIsInServer;
 }
 
 bool UCqsjFlowMoveComponent::IsFlowMoveActive() const
