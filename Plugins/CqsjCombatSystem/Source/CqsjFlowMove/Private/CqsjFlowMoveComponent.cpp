@@ -2,8 +2,9 @@
 
 
 #include "CqsjFlowMoveComponent.h"
-
+#include "CqsjPSFuncLib.h"
 #include "CqsjFlowMoveFuncLib.h"
+#include "CqsjPSFuncLib.h"
 
 
 // Sets default values for this component's properties
@@ -60,7 +61,18 @@ void UCqsjFlowMoveComponent::BeginPlay()
 		TaskState.FlowMoveComponentGuid = FGuid::NewGuid();
 		IsAIPlayer();
 
-		
+		PSStateComponent = UCqsjPSFuncLib :: GetPowerfulStateComponent(TaskState.OwnerCharacter);
+		PSStateComponent->bIsDebug =bPS_IsDebug;
+		PSStateComponent->StateOperationNum = PS_StateOperationNum;
+		PSStateComponent->DebugTextColor = PS_DebugTextColor ;
+		PSStateComponent->DebugTextColor2 = PS_DebugTextColor2;
+		PSStateComponent->bPrintToScreen = bPS_PrintToScreen;
+		PSStateComponent->bPrintToLog = bPS_PrintToLog ;
+
+		if(FlowMoveBrain)
+		{
+			
+		}
 	}
 	
 }
