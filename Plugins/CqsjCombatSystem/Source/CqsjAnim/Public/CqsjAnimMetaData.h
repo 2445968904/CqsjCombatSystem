@@ -11,7 +11,7 @@
  * 
  */
 UCLASS(meta = (DisplayName = "GBW_MainAssetSetting"))
-class GBWANIM_API UCqsjAnimMetaData_MainAssetSetting : public UAnimMetaData
+class CQSJANIM_API UCqsjAnimMetaData_MainAssetSetting : public UAnimMetaData
 {
 	GENERATED_BODY()
 public:

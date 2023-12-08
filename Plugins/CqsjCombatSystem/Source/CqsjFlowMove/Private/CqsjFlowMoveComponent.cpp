@@ -71,7 +71,10 @@ void UCqsjFlowMoveComponent::BeginPlay()
 
 		if(FlowMoveBrain)
 		{
-			
+			UCqsjAnimFuncLib::SetIncludeMainInstance(TaskState.OwnerCharacter,FlowMoveBrain->AnimStateGetType.IncludeMainAnimInstance);
+			UCqsjAnimFuncLib::SetIncludeLinkedInstance(TaskState.OwnerCharacter,FlowMoveBrain->AnimStateGetType.IncludeLinkedAnimInstance);
+			UCqsjAnimFuncLib::AddIncludeLinkedInstanceClass(TaskState.OwnerCharacter,FlowMoveBrain->AnimStateGetType.IncludeLinkedAnimInstanceClassSet);
+		
 		}
 	}
 	

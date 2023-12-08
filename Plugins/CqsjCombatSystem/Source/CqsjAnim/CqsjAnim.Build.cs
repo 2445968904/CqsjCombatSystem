@@ -9,7 +9,7 @@ public class CqsjAnim : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core",
+                "Core","AnimGraphRuntime"
             }
         );
 

@@ -254,36 +254,11 @@ struct FCqsjAnimPlayStateSet
 
 	bool IsValid() const;
 };
-
-
-
-
-
-
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class CQSJANIM_API UCqsjAnimComponent : public UActorComponent
-{
-	GENERATED_BODY()
-
-public:
-	// Sets default values for this component's properties
-	UCqsjAnimComponent();
-
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-};
-
-USTRUCT(BlueprintType,meta=(DisplayName="CqsjConditionMontage"))
+USTRUCT(BlueprintType, meta=(DisplayName="GBWConditionMontage"))
 struct FCqsjAnimStateGetType
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
 	bool IncludeMainAnimInstance = false;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
@@ -297,3 +272,144 @@ struct FCqsjAnimStateGetType
 
 	FCqsjAnimStateGetType(){}
 };
+
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+class CQSJANIM_API UCqsjAnimComponent : public UActorComponent
+{
+	GENERATED_BODY()
+
+public:	
+	// Sets default values for this component's properties
+	UCqsjAnimComponent();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+protected:
+	// Called when the game starts
+	virtual void BeginPlay() override;
+private:
+	int TickCount = 0;
+	
+public:
+	UPROPERTY(Replicated)
+	ACharacter* CharacterOwner = nullptr;
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="AnimState")
+	FCqsjAnimPlayStateSet AnimPlayState = FCqsjAnimPlayStateSet();
+	UPROPERTY(BlueprintReadOnly, Category="AnimState")
+	FCqsjAnimPlayStateSet AnimPlayState_Local = FCqsjAnimPlayStateSet();
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="AnimState")
+	FCqsjAnimStateGetType AnimStateGetType = FCqsjAnimStateGetType();
+	
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	void UpdateAnimPlayState(float DeltaTime);
+
+	ACharacter* GetCharacterOwner();
+	bool IsLocalOwn() const;
+	bool IsInServer();
+
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|Anim")
+	bool IsReadyToUse();
+
+	UFUNCTION(Reliable, Server, Category = "Cqsj|Anim")
+	void SetAnimPlayState_Server(FCqsjAnimPlayStateSet NewAnimPlayState);
+	UFUNCTION(Reliable, NetMulticast, Category = "Cqsj|Anim")
+	void SetAnimPlayState_Multicast(FCqsjAnimPlayStateSet NewAnimPlayState);
+	
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|Anim")
+	bool GetAnimPlayState(FCqsjAnimPlayStateSet& AnimPlayStateSet);
+	UFUNCTION(BlueprintCallable, Category = "Cqsj|Anim")
+	bool GetAnimPlayState_Local(FCqsjAnimPlayStateSet& AnimPlayStateSet);
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|Anim")
+	void SetIncludeMainInstance(bool bInclude = false);
+	UFUNCTION(Reliable, Server, Category = "Cqsj|Anim")
+	void SetIncludeMainInstance_Server(bool bInclude = false);
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|Anim")
+	void SetIncludeLinkedInstance(bool bInclude = false);
+	UFUNCTION(Reliable, Server, Category = "Cqsj|Anim")
+	void SetIncludeLinkedInstance_Server(bool bInclude = false);
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|Anim")
+	void AddIncludeLinkedInstanceClass(TArray<TSubclassOf<UAnimInstance>> IncludeLinkedAnimInstanceClassSet);
+	UFUNCTION(Reliable, Server, Category = "Cqsj|Anim")
+	void AddIncludeLinkedInstanceClass_Server(const TArray<TSubclassOf<UAnimInstance>>& IncludeLinkedAnimInstanceClassSet);
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|Anim")
+	void PlayMontage(USkeletalMeshComponent* SKMComponent,
+		UAnimMontage* MontageToPlay,
+		float PlayRate=1.0f,
+		float StartingPosition=0.0f,
+		FName StartingSection=NAME_None);
+	UFUNCTION(Reliable, Server, Category = "Cqsj|Anim")
+	void PlayMontage_Server(USkeletalMeshComponent* SKMComponent,
+		UAnimMontage* MontageToPlay,
+		float PlayRate=1.0f,
+		float StartingPosition=0.0f,
+		FName StartingSection=NAME_None);
+	UFUNCTION(Reliable, NetMulticast, Category = "Cqsj|Anim")
+	void PlayMontage_Multicast(USkeletalMeshComponent* SKMComponent,
+		UAnimMontage* MontageToPlay,
+		float PlayRate=1.0f,
+		float StartingPosition=0.0f,
+		FName StartingSection=NAME_None);
+	void PlayMontage_Imp(const USkeletalMeshComponent* SKMComponent,
+	                            UAnimMontage* MontageToPlay,
+	                            float PlayRate=1.0f,
+	                            float StartingPosition=0.0f,
+	                            FName StartingSection=NAME_None);
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|Anim")
+	void StopMontage(USkeletalMeshComponent* SKMComponent);
+	UFUNCTION(Reliable, Server, Category = "Cqsj|Anim")
+	void StopMontage_Server(USkeletalMeshComponent* SKMComponent);
+	UFUNCTION(Reliable, NetMulticast, Category = "Cqsj|Anim")
+	void StopMontage_Multicast(USkeletalMeshComponent* SKMComponent);
+	void StopMontage_Imp(const USkeletalMeshComponent* SKMComponent);
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|Anim")
+	UAnimMontage* GetNextMontageFromList(
+		TArray<UAnimMontage*> MontageList);
+
+	UFUNCTION(BlueprintCallable,Category = "Cqsj|Anim")
+	UAnimSequence* GetNextAnimSequenceFromList(
+		bool bHoldNowWhenAnimActive,
+		bool bHoldNowWhenAnimIsPreAnim,
+		TArray<UAnimSequence*> AnimSequenceList);
+
+	ECqsjAnimPlayStateType GetAnimPlayStateByNodeIndex(int32 NodeIndex, bool& bIsReplay);
+
+	bool IsAnimStateIsConsistentWithServer() const;
+	bool GetStateMachineInfoByNodeIndex(int32 NodeIndex, FCqsjAnimStateMachineNodeInfo& SMInfo) const;
+};
+
+USTRUCT(BlueprintType, meta=(DisplayName="CqsjMontage"))
+struct FCqsjMontage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	UAnimMontage* MontageToPlay = nullptr;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float PlayRate=1.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	float StartingPosition=0.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FName StartingSection=NAME_None;
+};
+
+USTRUCT(BlueprintType, meta=(DisplayName="CqsjConditionMontage"))
+struct FCqsjConditionMontage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	bool Condition = false;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings")
+	FCqsjMontage MontageSetting = FCqsjMontage();
+
+	bool CanPlay() const;
+};
+
+
