@@ -110,6 +110,20 @@ void FCqsjFlowMoveState::ClearFlowMoveEvent()
 	}
 }
 
+void FCqsjFlowMoveState::AddFlowMoveEvent(const FFlowMoveEvent& NewEvent)
+{
+	FFlowMoveEvent TheNewEvent = NewEvent;
+	TheNewEvent . InFrameNum = GFrameCounter;
+	FlowMoveEventNow.Add(TheNewEvent);
+}
+
+void FCqsjFlowMoveState::SetMoveVector(const FVector& NewMoveVector)
+{
+	MoveVector = NewMoveVector;
+	LastMoveVector = NewMoveVector;
+	LastMoveVectorTime = OwnerCharacter->GetWorld()->GetTimeSeconds();
+}
+
 void FCqsjFlowMoveState::AddPerceptionTag(FGameplayTag PerceptionTag)
 {
 	if(PerceptionTag.IsValid())
@@ -229,20 +243,56 @@ void UCqsjFlowMoveBrain_Base::GetMoveVector_Implementation(ACharacter* OwnerChar
 	UCqsjFlowMoveComponent* FlowMoveComponent, float DeltaTime, FCqsjFlowMoveState FlowMoveState, bool& bIsGet,
 	FVector& MoveVector)
 {
+	bIsGet =false ;
+	MoveVector = FVector ::ZeroVector;
 }
 
 void UCqsjFlowMoveBrain_Base::GetFmMoveVector(ACharacter* OwnerCharacter, UCqsjFlowMoveComponent* FlowMoveComponent,
 	float DeltaTime, FCqsjFlowMoveState FlowMoveState, bool& bIsGet, FVector& MoveVector)
 {
+	GetMoveVector(
+		OwnerCharacter,
+		FlowMoveComponent,
+		DeltaTime,
+		FlowMoveState,
+		bIsGet,
+		MoveVector
+		);
+	
 }
 
 void UCqsjFlowMoveBrain_Base::GetControlVector_Implementation(ACharacter* OwnerCharacter,
                                                               UCqsjFlowMoveComponent* FlowMoveComponent, float DeltaTime, FCqsjFlowMoveState FlowMoveState, bool& bIsGet,
                                                               FVector& ControlVector)
 {
+	bIsGet =false ;
+	ControlVector = FVector ::ZeroVector;
 }
 
 void UCqsjFlowMoveBrain_Base::GetFMControlVector(ACharacter* OwnerCharacter, UCqsjFlowMoveComponent* FlowMoveComponent,
 	float DeltaTime, FCqsjFlowMoveState FlowMoveState, bool& bIsGet, FVector& ControlVector)
 {
+	GetControlVector(
+		OwnerCharacter,
+		FlowMoveComponent,
+		DeltaTime,
+		FlowMoveState,
+		bIsGet,
+		ControlVector);
+}
+
+FFlowMoveEvent::FFlowMoveEvent(EFlowMoveEventType TheEventType, FGameplayTag InActionTag)
+{
+	EventType = TheEventType;
+	if (EventType == EFlowMoveEventType::OnActionStart
+		||EventType == EFlowMoveEventType::OnActionUpdate
+		||EventType == EFlowMoveEventType::OnActionEnd)
+	{
+		ActionTag = InActionTag;
+	}
+}
+
+FFlowMoveEvent::FFlowMoveEvent(EFlowMoveEventType TheEventType)
+{
+	EventType = TheEventType;
 }

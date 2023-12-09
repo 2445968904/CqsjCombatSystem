@@ -11,6 +11,7 @@
 #include "CqsjPSFuncLib.h"
 #include "CqsjRMSBPFuncLib.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 // Sets default values for this component's properties
@@ -158,6 +159,24 @@ void UCqsjFlowMoveComponent::SetInputValueByTargetPoint(FVector TargetPoint)
 
 void UCqsjFlowMoveComponent::SetMoveVector(FVector NewMoveVector, float ZeroFaultToleranceDuration)
 {
+	if(IsLocalOwn())
+	{
+		if(!NewMoveVector.IsNearlyZero() ||
+			(NewMoveVector.IsNearlyZero() && TaskState.OwnerCharacter->GetWorld()->GetRealTimeSeconds()- TaskState.LastMoveVectorTime >= ZeroFaultToleranceDuration))
+		{
+			TaskState.LastMoveVectorTime = TaskState.OwnerCharacter->GetWorld()->GetTimeSeconds();
+			TaskState.LastMoveVector = NewMoveVector;
+
+			if(NewMoveVector == TaskState.MoveVector)
+			{
+				return ;
+			}
+
+			TaskState.SetMoveVector( (NewMoveVector));
+			SetMoveVector_Server(NewMoveVector);
+		}
+		
+	}
 }
 
 FVector UCqsjFlowMoveComponent::GetMoveVector(bool Consumed)
@@ -176,6 +195,15 @@ FVector UCqsjFlowMoveComponent::GetControlVector()
 
 void UCqsjFlowMoveComponent::SetPerceptionVector(FVector NewPerceptionVector)
 {
+	if(IsLocalOwn())
+	{
+		if(IsLocalOwn())
+		{
+			return ;
+		}
+		TaskState.PerceptionVector = NewPerceptionVector;
+		SetPerceptionVector_Server(NewPerceptionVector);
+	}
 }
 
 FVector UCqsjFlowMoveComponent::GetPerceptionVector()
@@ -718,6 +746,59 @@ void UCqsjFlowMoveComponent::CheckStop()
 
 void UCqsjFlowMoveComponent::CheckInput(bool bReset)
 {
+	if(IsLocalPlayer() && FlowMoveBrain)
+	{
+		FVector MoveVector ;
+		FVector ControlVector;
+		bool IsMoveInput ;
+		bool IsControlInput;
+
+		FlowMoveBrain-> GetFmMoveVector(
+			TaskState.OwnerCharacter,
+			this,
+			TaskState.FrameDeltaTime,
+			TaskState,
+			IsMoveInput,
+			MoveVector);
+
+		FlowMoveBrain->GetFMControlVector(
+			TaskState.OwnerCharacter,
+			this,
+			TaskState.FrameDeltaTime,
+			TaskState,
+			IsControlInput,
+			ControlVector);
+
+		  if(IsMoveInput)
+		  {
+			  SetMoveVector(
+			  	MoveVector,
+			  	FlowMoveBrain->MoveVectorZeroFaultToleranceDuration);//移动矢量零容错持续时间
+		  }
+		if(IsControlInput)
+		{
+			SetControlVector(ControlVector);
+		}
+
+		const FTransform TraceT = TaskState.OwnerCharacter->GetTransform();
+		FVector Direction = UKismetMathLibrary::ProjectVectorOnToPlane(TaskState.ControlVector,TaskState.OwnerCharacter->GetActorForwardVector());
+		FVector DirectionResult =UKismetMathLibrary::InverseTransformDirection(TraceT,Direction);
+		//这个Direction看的是上下左右的转角（去除了前后的关系）
+		if(const float Pitch = Direction.Z * 90.0f; -FlowMoveBrain->PerceptionInputSettings.DownAngleThreshold<Pitch && Pitch< FlowMoveBrain->PerceptionInputSettings.UpAngleThreshold)
+		{
+			DirectionResult.Z =0 ;
+		}
+		if(const float Yaw = DirectionResult.Y * 90.0f ; -FlowMoveBrain->PerceptionInputSettings.LeftAndRightAngleThreshold<Yaw && Yaw < FlowMoveBrain->PerceptionInputSettings.LeftAndRightAngleThreshold)
+		{
+			DirectionResult.Y = 0 ;
+		}
+		DirectionResult.X =0;
+		Direction .Normalize();
+		const FVector PerceptionVector = DirectionResult;
+		SetPerceptionVector(PerceptionVector);
+	}
+
+	
 }
 
 void UCqsjFlowMoveComponent::CheckViewMode()
@@ -1050,6 +1131,7 @@ void UCqsjFlowMoveComponent::StopFlowMove_Server_Implementation(bool WaitForCurr
 
 void UCqsjFlowMoveComponent::SetPerceptionVector_Server_Implementation(FVector NewPerceptionVector)
 {
+	TaskState.PerceptionVector = NewPerceptionVector ;
 }
 
 void UCqsjFlowMoveComponent::SetControlVector_Server_Implementation(FVector ControlVector)
