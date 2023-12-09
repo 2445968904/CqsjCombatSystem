@@ -293,15 +293,15 @@ public:
 		FGameplayTag NewLastActionTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove|Perceptron")
-	void ActivePerceptron(const FGameplayTag PerceptronTag);
+	void ActivePerception(const FGameplayTag PerceptronTag);
 	UFUNCTION(Reliable,Server,Category = "Cqsj|FlowMove|Perceptron")
-	void ActivePerceptron_Server(const FGameplayTag PerceptronTag);
-	void ActivePerceptron_Imp(const FGameplayTag PerceptronTag);
+	void ActivePerception_Server(const FGameplayTag PerceptionTag);
+	void ActivePerception_Imp(const FGameplayTag PerceptionTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove|Perceptron")
-	void DeactivePerceptron(const FGameplayTag PerceptronTag);
+	void DeactivePerception(const FGameplayTag PerceptronTag);
 	UFUNCTION(Reliable,Server,Category = "Cqsj|FlowMove|Perceptron")
-	void DeactivePerceptron_Server(const FGameplayTag PerceptronTag);
+	void DeactivePerception_Server(const FGameplayTag PerceptronTag);
 	void DeactivePerceptron_Imp(const FGameplayTag PerceptronTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Cqsj|FlowMove|Perceptron")

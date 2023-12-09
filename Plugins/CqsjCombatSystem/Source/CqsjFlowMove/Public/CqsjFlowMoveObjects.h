@@ -1112,7 +1112,7 @@ struct FCqsjFlowMoveState
 	USceneComponent* FocusActorComponent = nullptr;
 
 	UPROPERTY()
-	FGameplayTagContainer PerceptronReady = FGameplayTagContainer();
+	FGameplayTagContainer PerceptionReady = FGameplayTagContainer();
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Settings")
 	FGameplayTagContainer PerceptronNow = FGameplayTagContainer();
 	UPROPERTY()
@@ -1192,7 +1192,7 @@ struct FCqsjFlowMoveState
 
 	void SetMoveVector(const FVector& NewMoveVector);
 
-	void AddPerceptronTag(FGameplayTag PerceptronTag);
+	void AddPerceptionTag(FGameplayTag PerceptronTag);
 	void ReadyPerceptronTag(FGameplayTag PerceptronTag);
 	void RemovePerceptronTag(FGameplayTag PerceptronTag);
 	void FinishPerceptronTag(FGameplayTag PerceptronTag);

@@ -110,6 +110,22 @@ void FCqsjFlowMoveState::ClearFlowMoveEvent()
 	}
 }
 
+void FCqsjFlowMoveState::AddPerceptionTag(FGameplayTag PerceptionTag)
+{
+	if(PerceptionTag.IsValid())
+	{
+		PerceptionReady.AddTag(PerceptionTag);
+	}
+}
+
+void FCqsjFlowMoveState::AddScriptTag(FGameplayTag ScriptTag)
+{
+	if(ScriptTag.IsValid())
+	{
+		ScriptReady.AddTag(ScriptTag);
+	}
+}
+
 void UCqsjFlowMovePerception_Base::SetCache(FCqsjFlowMoveScene TheFlowMoveSceneCache)
 {
 	

@@ -4,6 +4,8 @@
 #include "CqsjFlowMoveComponent.h"
 
 
+
+
 #include "CqsjPSFuncLib.h"
 #include "CqsjFlowMoveFuncLib.h"
 #include "CqsjPSFuncLib.h"
@@ -114,6 +116,40 @@ bool UCqsjFlowMoveComponent::GetRootMotionParamDirect(FTransform& Result, float 
 
 void UCqsjFlowMoveComponent::OnEvent(const FFlowMoveEvent& FlowMoveEvent)
 {
+	//根据不同的事件类型执行相应的逻辑 , 有点像 Run Event
+	TaskState.AddFlowMoveEvent(FlowMoveEvent);
+	if(FlowMoveBrain)
+	{
+		FlowMoveBrain->OnFMEvent(TaskState.OwnerCharacter,this,TaskState,FlowMoveEvent);
+
+		if(FlowMoveEvent.EventType == EFlowMoveEventType::OnActionStart
+			&&FlowMoveBrain->ActionEventKey_Start.IsValid()
+			&&FlowMoveBrain->ActionEventValueKey.IsValid())
+		{
+			UCqsjPSFuncLib::SendPowerfulEvent(
+				TaskState.OwnerCharacter,
+				UCqsjPSFuncLib::AddGTToPE(
+					UCqsjPSFuncLib::MakePE_Event(FlowMoveBrain->ActionEventKey_Start),
+					FlowMoveBrain->ActionEventValueKey,
+					FlowMoveEvent.ActionTag));
+		}
+		else if(FlowMoveEvent.EventType == EFlowMoveEventType::OnActionEnd
+			&& FlowMoveBrain->ActionEventKey_End.IsValid()
+			&& FlowMoveBrain->ActionEventValueKey.IsValid())
+		{
+			UCqsjPSFuncLib::SendPowerfulEvent(
+				TaskState.OwnerCharacter,
+				UCqsjPSFuncLib::AddGTToPE(
+					UCqsjPSFuncLib::MakePE_Event(FlowMoveBrain->ActionEventKey_End),
+					FlowMoveBrain->ActionEventValueKey,
+					FlowMoveEvent.ActionTag));
+		}
+		else if(FlowMoveEvent.EventType == EFlowMoveEventType::OnActionUpdate
+			&& FlowMoveBrain->ActionStateKey.IsValid() && IsInServer())
+		{
+			UCqsjPSFuncLib::SetPSGT(TaskState.OwnerCharacter,FlowMoveBrain->ActionStateKey,FlowMoveEvent.ActionTag);
+		}
+	}
 }
 
 void UCqsjFlowMoveComponent::SetInputValueByTargetPoint(FVector TargetPoint)
@@ -213,7 +249,32 @@ void UCqsjFlowMoveComponent::Active_Imp()
 
 		MovementCompMaxAccelerationCache= TaskState.OwnerCharacter->GetCharacterMovement()->GetMaxAcceleration();
 		TaskState.OwnerCharacter ->GetCharacterMovement()->MaxAcceleration =0.0f;
-		
+
+		TaskState.bIsActive =true ;
+		TaskState.bIsStopping =false ;
+
+		if(IsInServer())
+		{
+			for(const auto Item: FlowMoveBrain->FlowMovePerceptronSet)
+			{
+				if(Item.Value && Item.Value->bIsDefaultActive)
+				{
+					ActivePerception(Item.Key);
+				}
+			}
+
+			for(const auto Item : FlowMoveBrain->FlowMoveScriptSet)
+			{
+				if(Item.Value && Item.Value->bIsDefaultActive)
+				{
+					ActiveScript(Item.Key);
+				}
+			}
+		}
+
+		UpdateMoveControlParam(TaskState.FrameDeltaTime);
+
+		OnActiveEvent();
 	}
 	
 }
@@ -337,15 +398,20 @@ void UCqsjFlowMoveComponent::SetFlowMoveLastAction_Imp(FGameplayTag NewLastActio
 {
 }
 
-void UCqsjFlowMoveComponent::ActivePerceptron(const FGameplayTag PerceptronTag)
+void UCqsjFlowMoveComponent::ActivePerception(const FGameplayTag PerceptronTag)
 {
+	if(IsInServer()||IsLocalOwn())
+	{
+		ActivePerception_Server(PerceptronTag);
+	}
 }
 
-void UCqsjFlowMoveComponent::ActivePerceptron_Imp(const FGameplayTag PerceptronTag)
+void UCqsjFlowMoveComponent::ActivePerception_Imp(const FGameplayTag PerceptionTag)
 {
+	TaskState.AddPerceptionTag(PerceptionTag);
 }
 
-void UCqsjFlowMoveComponent::DeactivePerceptron(const FGameplayTag PerceptronTag)
+void UCqsjFlowMoveComponent::DeactivePerception(const FGameplayTag PerceptronTag)
 {
 }
 
@@ -355,10 +421,15 @@ void UCqsjFlowMoveComponent::DeactivePerceptron_Imp(const FGameplayTag Perceptro
 
 void UCqsjFlowMoveComponent::ActiveScript(const FGameplayTag ScriptTag)
 {
+	if(IsInServer() || IsLocalOwn())
+	{
+		ActiveScript_Server(ScriptTag);
+	}
 }
 
 void UCqsjFlowMoveComponent::ActiveScript_Imp(const FGameplayTag ScriptTag)
 {
+	TaskState.AddScriptTag(ScriptTag);
 }
 
 void UCqsjFlowMoveComponent::DeactiveScript(const FGameplayTag ScriptTag)
@@ -685,7 +756,14 @@ void UCqsjFlowMoveComponent::EnsureRMSActivation()
 						TaskState.OwnerCharacter->GetCharacterMovement(),
 						true);
 	}
-	
+	FRootMotionSourceGroup RmsArr = TaskState.OwnerCharacter->GetCharacterMovement()->CurrentRootMotion;
+	for(const auto Rms:RmsArr.RootMotionSources)
+	{
+		if(Rms->InstanceName != UCqsjRMSBPFuncLib::CqsjRms_GetRmsCommonInstanceName())
+		{
+			TaskState.OwnerCharacter->GetCharacterMovement()->RemoveRootMotionSource(Rms->InstanceName);
+		}
+	}
 	
 }
 
@@ -715,6 +793,8 @@ void UCqsjFlowMoveComponent::UpdateCurrentAction(float DeltaTime)
 
 void UCqsjFlowMoveComponent::OnActiveEvent()
 {
+	OnActive.Broadcast(TaskState);
+	OnEvent(FFlowMoveEvent(EFlowMoveEventType::OnActive));
 }
 
 void UCqsjFlowMoveComponent::OnStopEvent()
@@ -812,14 +892,16 @@ void UCqsjFlowMoveComponent::DeactiveScript_Server_Implementation(const FGamepla
 
 void UCqsjFlowMoveComponent::ActiveScript_Server_Implementation(const FGameplayTag ScriptTag)
 {
+	ActiveScript_Imp(ScriptTag);
 }
 
-void UCqsjFlowMoveComponent::DeactivePerceptron_Server_Implementation(const FGameplayTag PerceptronTag)
+void UCqsjFlowMoveComponent::DeactivePerception_Server_Implementation(const FGameplayTag PerceptronTag)
 {
 }
 
-void UCqsjFlowMoveComponent::ActivePerceptron_Server_Implementation(const FGameplayTag PerceptronTag)
+void UCqsjFlowMoveComponent::ActivePerception_Server_Implementation(const FGameplayTag PerceptionTag)
 {
+	ActivePerception_Imp(PerceptionTag);
 }
 
 void UCqsjFlowMoveComponent::SetFlowMoveLastAction_Server_Implementation(FGameplayTag NewLastActionTag)
