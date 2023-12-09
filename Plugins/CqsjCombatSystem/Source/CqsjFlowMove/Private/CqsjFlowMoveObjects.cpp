@@ -95,6 +95,21 @@ bool FFlowMoveMoveVectorCondition::IsMet(const FCqsjFlowMoveState& FlowMoveState
 	return true;
 }
 
+void FCqsjFlowMoveState::ClearFlowMoveEvent()
+{
+	TArray<FFlowMoveEvent> FlowMoveEventNow_Temp = FlowMoveEventNow;
+	int RemoveCount =0;
+	for(int i=0; i< FlowMoveEventNow_Temp.Num();i++)
+	{
+		//延迟两帧去清除时间
+		if(FlowMoveEventNow_Temp[i].InFrameNum<= GFrameCounter-2)
+		{
+			FlowMoveEventNow.RemoveAt((i-RemoveCount));
+			RemoveCount++;//删除后数组会变小
+		}
+	}
+}
+
 void UCqsjFlowMovePerception_Base::SetCache(FCqsjFlowMoveScene TheFlowMoveSceneCache)
 {
 	
@@ -173,16 +188,25 @@ void UCqsjFlowMoveBrain_Base::OnFMEvent(ACharacter* OwnerCharacter, UCqsjFlowMov
 	FCqsjFlowMoveState FlowMoveState, const FFlowMoveEvent& FlowMoveEvent)
 {
 }
-
+//意义不明
 void UCqsjFlowMoveBrain_Base::GetFlowMoveIsActive_Implementation(ACharacter* OwnerCharacter,
 	UCqsjFlowMoveComponent* FlowMoveComponent, float DeltaTime, FCqsjFlowMoveState FlowMoveState, bool& bIsActive,
 	bool& WaitForCurrentActionFinished)
 {
+	bIsActive =false ;
+	WaitForCurrentActionFinished =true ;
 }
 
 void UCqsjFlowMoveBrain_Base::GetFMIsActive(ACharacter* OwnerCharacter, UCqsjFlowMoveComponent* FlowMoveComponent,
 	float DeltaTime, FCqsjFlowMoveState FlowMoveState, bool& bIsActive, bool& WaitForCurrentActionFinished)
 {
+	GetFlowMoveIsActive(
+		OwnerCharacter,
+		FlowMoveComponent,
+		DeltaTime,
+		FlowMoveState,
+		bIsActive,
+		WaitForCurrentActionFinished);
 }
 
 void UCqsjFlowMoveBrain_Base::GetMoveVector_Implementation(ACharacter* OwnerCharacter,

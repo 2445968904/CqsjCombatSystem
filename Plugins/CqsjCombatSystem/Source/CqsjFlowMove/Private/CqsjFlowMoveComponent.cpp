@@ -2,9 +2,13 @@
 
 
 #include "CqsjFlowMoveComponent.h"
+
+
 #include "CqsjPSFuncLib.h"
 #include "CqsjFlowMoveFuncLib.h"
 #include "CqsjPSFuncLib.h"
+#include "CqsjRMSBPFuncLib.h"
+#include "Components/CapsuleComponent.h"
 
 
 // Sets default values for this component's properties
@@ -87,7 +91,17 @@ void UCqsjFlowMoveComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	const float RealDeltaTime = DeltaTime;
 	// ...
+
+	if(FrameNumber == GFrameCounter)
+		return ;
+
+	FlowMoveTick(RealDeltaTime);
+
+	TaskState.Timer = TaskState.Timer+RealDeltaTime;
+	TaskState.FrameDeltaTime = RealDeltaTime;
+	FrameNumber = GFrameCounter;
 }
 
 bool UCqsjFlowMoveComponent::GetRootMotionParamDirect(FTransform& Result, float SimulationTime, float MovementTickTime,
@@ -148,10 +162,60 @@ void UCqsjFlowMoveComponent::Stop()
 
 void UCqsjFlowMoveComponent::ActiveFlowMove()
 {
+	if(IsInServer() || IsLocalOwn())
+	{
+		Active_Server();
+	}
 }
 
 void UCqsjFlowMoveComponent::Active_Imp()
 {
+	if(IsFlowMoveActive())
+	{
+		if(IsFlowMoveStopping())
+		{
+			if(IsInServer())
+			{
+				TaskState.bIsStopping =false ;
+			}
+			return ;
+		}
+		return ;
+	}
+	if(!FlowMoveBrain)
+	{
+		return ;
+	}
+
+	if(IsInServer())
+	{
+		if(!TaskState.FlowMoveComponentGuid.IsValid())
+		{
+			TaskState.FlowMoveComponentGuid = FGuid::NewGuid();
+		}
+	}
+	TaskState.OwnerCharacter = Cast<ACharacter>(GetOwner());
+	TaskState.Timer = 0.0f;
+	TaskState.FlowMoveComponent = this ;
+
+	//初始化Character的各种设置
+	CapsuleRadiusCache = TaskState.OwnerCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius();
+	MeshRelativeLocationCache = TaskState.OwnerCharacter->GetMesh()->GetRelativeLocation();
+	CapsuleHalfHeightCache = TaskState.OwnerCharacter ->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+
+	bUseControllerRotationYawCache = TaskState.OwnerCharacter ->bUseControllerRotationYaw;
+
+	if(TaskState.OwnerCharacter && FlowMoveBrain)
+	{
+		TaskState.OwnerCharacter->bUseControllerRotationYaw = false ;
+
+		EnsureRMSActivation();
+
+		MovementCompMaxAccelerationCache= TaskState.OwnerCharacter->GetCharacterMovement()->GetMaxAcceleration();
+		TaskState.OwnerCharacter ->GetCharacterMovement()->MaxAcceleration =0.0f;
+		
+	}
+	
 }
 
 void UCqsjFlowMoveComponent::SetMovementConstrain(const FVector& PlaneNormal, const FVector& PlaneOrigin)
@@ -409,7 +473,18 @@ bool UCqsjFlowMoveComponent::IsAIPlayer(bool bIsReset)
 
 bool UCqsjFlowMoveComponent::IsLocalOwn(bool bIsReset)
 {
-	return false;
+	if(!TaskState.OwnerCharacter)
+	{
+		return false ;
+	}
+
+	if(bIsLocalOwnInit || bIsReset)
+	{
+		//这里转到了FuncLib去初始化
+		bIsLocalOwn = UCqsjFlowMoveFuncLib::IsLocalOwn(TaskState.OwnerCharacter);
+		bIsLocalOwnInit =true ;
+	}
+	return bIsLocalOwn;
 }
 
 bool UCqsjFlowMoveComponent::IsInServer(bool bIsReset)
@@ -424,12 +499,12 @@ bool UCqsjFlowMoveComponent::IsInServer(bool bIsReset)
 
 bool UCqsjFlowMoveComponent::IsFlowMoveActive() const
 {
-	return false;
+	return TaskState.OwnerCharacter && TaskState.bIsActive;
 }
 
 bool UCqsjFlowMoveComponent::IsFlowMoveStopping() const
 {
-	return false;
+	return TaskState.bIsStopping;
 }
 
 AActor* UCqsjFlowMoveComponent::GetNetWorkActor(FGuid ActorGuid)
@@ -506,10 +581,64 @@ void UCqsjFlowMoveComponent::MovingAdjust()
 
 void UCqsjFlowMoveComponent::FlowMoveTick(float DeltaTime)
 {
+	TaskState.ClearFlowMoveEvent();
+
+	if(!CheckUpdateValid())
+	{
+		return ;
+	}
+	//施工标识符
+	CheckActive();
+
+	CheckInput();
+
+	CheckViewMode();
+
+	UpdateCharacterState(DeltaTime);
+
+	UpdateScript(DeltaTime);
+
+	UpdateScene(DeltaTime);
+
+	CheckStop();
+
+	//OnUpdate.Broadcast(TaskState);
+	//OnEvent(FFlowMoveEvent(EFlowMoveEventType::OnUpdate));
+
+	UpdateCurrentAction(DeltaTime);
+
+	UpdateMoveControlParam(DeltaTime);
+
+	UpdateRMS(DeltaTime);
 }
 
 void UCqsjFlowMoveComponent::CheckActive()
 {
+	if(IsInServer())
+	{
+		bool IsActive =false;
+		bool IsWaitForCurrentActionFinished =true ;
+		if(FlowMoveBrain)
+		{
+			FlowMoveBrain ->GetFMIsActive(
+				TaskState.OwnerCharacter,
+				this,
+				TaskState.FrameDeltaTime,
+				TaskState,
+				IsActive,
+				IsWaitForCurrentActionFinished
+			);
+		}
+
+		if(IsActive && (!IsFlowMoveActive()||IsFlowMoveStopping()))
+		{
+			ActiveFlowMove();
+		}
+		else if(!IsActive && IsFlowMoveActive())
+		{
+			StopFlowMove(IsWaitForCurrentActionFinished);
+		}
+	}
 }
 
 void UCqsjFlowMoveComponent::CheckStop()
@@ -526,11 +655,38 @@ void UCqsjFlowMoveComponent::CheckViewMode()
 
 bool UCqsjFlowMoveComponent::CheckUpdateValid()
 {
-	return false ;
+	if(!TaskState.OwnerCharacter)
+	{
+		TaskState.OwnerCharacter = Cast<ACharacter>(GetOwner());
+	}
+	if(!TaskState.OwnerCharacter)
+	{
+		return false ;
+	}
+	if(!IsValid(FlowMoveBrain))
+	{
+		return false ;
+	}
+	if(!bIsNetInit)
+	{
+		NetInit();
+	}
+	return bIsNetInit ;
 }
 
 void UCqsjFlowMoveComponent::EnsureRMSActivation()
 {
+	if(!UCqsjRMSBPFuncLib::CqsjRms_IsRmsCommonActive(TaskState.OwnerCharacter->GetCharacterMovement()))
+	{
+		FName RMSInsName;
+		UCqsjRMSBPFuncLib::CqsjRMS_Common(
+						RMSInsName,
+						this,
+						TaskState.OwnerCharacter->GetCharacterMovement(),
+						true);
+	}
+	
+	
 }
 
 void UCqsjFlowMoveComponent::UpdateCharacterState(float DeltaTime)
@@ -782,10 +938,16 @@ void UCqsjFlowMoveComponent::SetActive_Server_Implementation(bool NewActive)
 
 void UCqsjFlowMoveComponent::Active_Multicast_Implementation()
 {
+	if(TaskState.OwnerCharacter)
+	{
+		Active_Imp();
+	}
 }
 
 void UCqsjFlowMoveComponent::Active_Server_Implementation()
 {
+	
+	Active_Multicast();
 }
 
 void UCqsjFlowMoveComponent::Stop_Multicast_Implementation()
