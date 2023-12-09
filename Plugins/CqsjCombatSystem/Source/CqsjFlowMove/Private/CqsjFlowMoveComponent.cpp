@@ -866,6 +866,154 @@ void UCqsjFlowMoveComponent::UpdateMoveControlParam(float DeltaTime)
 
 void UCqsjFlowMoveComponent::UpdateRMS(float DeltaTime)
 {
+	if(IsInServer())
+	{
+		TaskState .MakeVelocity() ;
+
+		FTransform NewParam = FTransform();
+		if(!IsActionNow())
+		{
+			NewParam = FTransform ( ) ; 
+		}
+		if (DeltaTime > SMALL_NUMBER && FlowMoveBrain)
+		{
+			FVector TargetPoint = GetActionTargetPoint(GetMoveControlParam().ActionTargetPoint);
+			const bool bIsToTargetPoint = GetMoveControlParam().ToTargetPointRate> 0 && !TargetPoint.IsZero() ;
+			
+			const FVector TargetRealDirection = TargetPoint - CurrentActionTargetSceneInfo.BeginTransform.GetLocation();
+			FVector TargetDirection = TargetRealDirection ;
+			TargetDirection.Z = 0.0f ;
+			TargetDirection .Normalize();
+
+			const FVector DtPathOffset = (bIsToTargetPoint ? TargetDirection : TaskState.MoveControlParam.MoveToDirection).Rotation().RotateVector(GetMoveControlParam().DeltaPathOffset);
+
+			const FRotator DtRotationOffset =GetMoveControlParam().DeltaRotationOffset;
+
+			FVector CurrentTargetDtPathOffset = FVector::ZeroVector;
+			if(CurrentActionTargetSceneInfo.bIsValid && bIsToTargetPoint && IsActionNow())
+			{
+				CurrentTargetDtPathOffset = TargetRealDirection * GetMoveControlParam().DeltaToTargetPointRate;
+			}
+
+			const float FallDistance = 0.5f * 10000.0f *GetMoveControlParam().Gravity * DeltaTime *DeltaTime;
+			//DtMove计算的是这帧进行的移动
+			FVector DtMove = CurrentTargetDtPathOffset + DtPathOffset +FVector (0,0,FallDistance);
+			DtMove =DtMove +TaskState.MoveControlParam.MoveToDirection *GetMoveControlParam().MoveSpeed * DeltaTime;
+
+			//Compensate for lost speed in the current speed direction
+			if (TaskState.MoveControlParam.CompensateLostSpeedToCurrentSpeedDirection)
+			{
+				FVector OldVelocity = TaskState.RMSParamNow.GetLocation();
+				OldVelocity.Z = 0.0f;
+				FVector VelocityNow = TaskState.OwnerCharacter->GetVelocity();
+				VelocityNow.Z = 0.0f;
+				float AddSpeed = VelocityNow.Length()>0.0f? (TaskState.LostSpeed * OldVelocity.Length() / VelocityNow.Length()) : 0.0f;
+				VelocityNow.Normalize();
+				DtMove = DtMove + VelocityNow * AddSpeed * DeltaTime;
+			}
+			
+			const FVector Force = DtMove / DeltaTime;
+			
+			const FRotator CurrentRotation = TaskState.OwnerCharacter->GetActorRotation();
+			FRotator RotationDt = FRotator::ZeroRotator;
+
+			//rotation
+			FRotator TargetRotation = TaskState.ForwardVector.Rotation();
+			if (TaskState.MoveControlParam.HasActiveAnimCurveState(FlowMoveBrain->AnimCurveNameSetting.RotationLockToMoveDirectionYaw) ||
+				TaskState.MoveControlParam.bIsLock_RotationLockToMoveDirectionYaw)
+			{
+				TargetRotation = GetDirectionVector(GetMoveControlParam().RotationLockTo).Rotation();
+				TargetRotation = UKismetMathLibrary::ComposeRotators(
+					FRotator(0.0f,
+					GetMoveControlParam().RotationLockToMoveDirectionYaw
+					,0.0f),
+					TargetRotation);
+			}
+
+
+						/*//the rotation of inertia
+			if (TaskState.MoveControlParam.bIsLock_UseInertia
+				&& TaskState.CurrentFlowMoveExecutedTime <= TaskState.MoveControlParam.InertiaTime)
+			{
+				TargetRotation = UKismetMathLibrary::ComposeRotators(
+					TargetRotation * (TaskState.CurrentFlowMoveExecutedTime / TaskState.MoveControlParam.InertiaTime),
+					CurrentActionTargetSceneInfo.BeginTransform.Rotator() * (1.0f - TaskState.CurrentFlowMoveExecutedTime / TaskState.MoveControlParam.InertiaTime)
+					);
+			}*/
+			
+			const float DeltaYaw = UKismetMathLibrary::NormalizedDeltaRotator(TargetRotation ,CurrentRotation).Yaw;
+			RotationDt = FRotator{
+				0.0f,
+				FMath::FInterpTo(0, DeltaYaw, DeltaTime, GetMoveControlParam().RotationLockToSmoothSpeed),
+				0.0f};
+
+			RotationDt = UKismetMathLibrary::ComposeRotators(RotationDt, DtRotationOffset);
+			
+			NewParam = UKismetMathLibrary::ComposeTransforms(NewParam,FTransform(RotationDt, Force));
+		}
+		else
+		{
+			NewParam = FTransform();
+		}
+
+		NewParam.SetLocation(NewParam.GetLocation() * GetActorScale());
+
+		/*//the force of inertia
+		if (TaskState.MoveControlParam.bIsLock_UseInertia
+			&& TaskState.CurrentFlowMoveExecutedTime <= TaskState.MoveControlParam.InertiaTime)
+		{
+			NewParam.SetLocation(
+				NewParam.GetLocation() * TaskState.CurrentFlowMoveExecutedTime / TaskState.MoveControlParam.InertiaTime
+				+ CurrentActionTargetSceneInfo.BeginVelocity * (1.0f - TaskState.CurrentFlowMoveExecutedTime / TaskState.MoveControlParam.InertiaTime)
+			);
+
+			GEngine->AddOnScreenDebugMessage(465451,20,FColor::Green,FString::Printf(TEXT("%.2f + %.2f")
+				,TaskState.CurrentFlowMoveExecutedTime / TaskState.MoveControlParam.InertiaTime
+				,1.0f - TaskState.CurrentFlowMoveExecutedTime / TaskState.MoveControlParam.InertiaTime
+				));
+		}*/
+
+		if (!TaskState.MoveControlParam.bIsLock_MaxSpeed
+			||(TaskState.MoveControlParam.bIsLock_MaxSpeed
+				&& NewParam.GetLocation().Length() <= TaskState.MoveControlParam.MaxMoveSpeed))
+		{
+			if (IsInServer())
+			{
+				//SetRMSParamNow(NewParam);
+				TaskState.RMSParamNow = NewParam;
+				TaskState.RMSParamNow_Local = NewParam;
+			}
+			if (IsLocalOwn())
+			{
+				TaskState.RMSParamNow_Local = NewParam;
+			}
+		}
+
+		//Constrain Movement
+		if (TaskState.MoveControlParam.bIsLock_ConstrainMoveToTargetPlane
+			&& TaskState.CurrentFlowMoveExecutedTime <= TaskState.MoveControlParam.ConstrainMoveTime)
+		{
+			FVector PlaneNormal;
+			FVector PlaneOrigin;
+			if (CurrentActionTargetSceneInfo.BeginFlowMoveState.CurrentActionTargetScene.GetPlaneConstraintSetting(PlaneNormal, PlaneOrigin))
+			{
+				SetMovementConstrain(PlaneNormal, PlaneOrigin);
+			}
+		}
+		else
+		{
+			ResetMovementConstrain();
+		}
+	}
+
+	//PostureAdjust
+	PostureAdjust(DeltaTime);
+
+	//MovingAdjust
+	MovingAdjust();
+		
+			
+	
 }
 
 void UCqsjFlowMoveComponent::UpdateCurrentAction(float DeltaTime)

@@ -90,9 +90,24 @@ UWorld* UCqsjFlowMoveObject_Base::GetWorld() const
 	return nullptr;
 }
 
+bool FCqsjFlowMoveScene::GetPlaneConstraintSetting(FVector& PlaneNormal, FVector& PlaneOrigin) const
+{
+	return false ;
+}
+
 bool FFlowMoveMoveVectorCondition::IsMet(const FCqsjFlowMoveState& FlowMoveState)
 {
 	return true;
+}
+
+bool FCqsjFlowMoveControlParam::HasActiveAnimCurveState(FName InName) const
+{
+	return false ;
+}
+
+void FCqsjFlowMoveState::MakeVelocity()
+{
+	
 }
 
 void FCqsjFlowMoveState::ClearFlowMoveEvent()
